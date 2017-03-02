@@ -32,9 +32,11 @@ class vec3
             return sqrt(s);
         }
 
-        vec3 normalize() {
+        void normalize() {
             double length = this->length();
-            return vec3(this->x / length, this->y / length, this->z / length);
+            this->x /= length;
+            this->y /= length;
+            this->z /= length;
         }
 
         void print() {
@@ -94,7 +96,12 @@ class Ray
 {
     public:
         vec3 origin, dir;
-        Ray(vec3 o, vec3 d) : origin(o), dir(d.normalize()) { }
+        Ray(vec3 o, vec3 d) : origin(o), dir(d) { dir.normalize(); }
+        
+        vec3 getPoint(double t) {
+            return origin + dir * t;
+        }
+
         void print() {
             cout << "Origin: ";
             this->origin.print();
@@ -147,13 +154,19 @@ class Sphere : public Shape {
 
             return true;
         }
+
+        vec3 normal(vec3 surfacePoint) {
+            vec3 normal = this->center - surfacePoint;
+            normal.normalize();
+            return normal;
+        }
 };
 
 const int WIDTH = 2048;
 const int HEIGHT = 2048;
 
 int main() {
-    cimg_library::CImg<unsigned float> img(WIDTH, HEIGHT, 1, 1);
+    cimg_library::CImg<char> img(WIDTH, HEIGHT, 1, 1);
     img.fill(0.0);
 
     vec3 center(0.0, 0.0, -2.0);
@@ -167,12 +180,13 @@ int main() {
             double x = (2 * (i + 0.5) / (double) WIDTH - 1) *  scale; 
             double y = (1 - 2 * (j + 0.5) / (double) HEIGHT) * scale; 
 
-            vec3 dir = mat.multiply(vec3(x, y, -1), 1.0).normalize(); 
+            vec3 dir = mat.multiply(vec3(x, y, -1), 1.0);
+            dir.normalize();
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
             double t;
 
             if(sphere.intersect(ray, &t)) {
-                char color[1] = { 1.0, 0.5, (float) t/2.0 };
+                char color[1] = { (char)floor(255 * t/2.0) };
                 img.draw_point(i, j, color);
             }
         }
