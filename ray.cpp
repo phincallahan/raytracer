@@ -19,6 +19,10 @@ class vec3
             return vec3(other.x - this->x, other.y - this->y, other.z - this->z);
         }
 
+        vec3 operator-() {
+            return vec3(-this->x, -this->y, -this->z);
+        }
+
         vec3 operator*(const double scale) {
             return vec3(this->x * scale, this->y * scale, this->z * scale);
         }
