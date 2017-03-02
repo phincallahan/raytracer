@@ -73,6 +73,15 @@ class Matrix44
             return mat;
         }
 
+        vec3 multiply(vec3 v, double end) {
+            vec3 ret = vec3(0.0, 0.0, 0.0);
+            ret.x = v.x * val[0] + v.y * val[1] + v.z * val[2] + end * val[3];
+            ret.y = v.x * val[4] + v.y * val[5] + v.z * val[6] + end * val[7];
+            ret.z = v.x * val[8] + v.y * val[9] + v.z * val[10] + end * val[11];
+
+            return ret;
+        }
+
     private:
         double val[16];
 };
@@ -115,26 +124,30 @@ const int WIDTH = 512;
 const int HEIGHT = 512;
 
 int main() {
-    vec3 origin (0.0, 0.0, 0.0);
-    vec3 dir (0.75, 0.25, 0.0);
-    Ray ray (origin, dir);
-
-    cimg_library::CImg<unsigned char> img(WIDTH, HEIGHT, 1, 3);
+    cimg_library::CImg<unsigned char> img(WIDTH, HEIGHT, 1, 1);
     img.fill(0.0);
-    for(int x = 0; x < WIDTH; x++) {
-        for(int y = 0; y < HEIGHT; y++) {
-            unsigned char color[3] = { 255 * rand(), 255 * rand(), 255 * rand() };
-            img.draw_point(x,y, color);
-        }
-    }
 
-    img.save("test_trace.png");
-
-    vec3 center(2.0, 0.0, 0.0);
+    vec3 center(0.0, 0.0, -2.0);
     Sphere sphere(center, 1.0);
 
     Matrix44 mat = Matrix44::identity();
 
+    double scale = tan(M_PI / 4);
+    for(int i = 0; i < WIDTH; i++) {
+        for(int j = 0; j < HEIGHT; j++) {
+            double x = (2 * (i + 0.5) / (double) WIDTH - 1) *  scale; 
+            double y = (1 - 2 * (j + 0.5) / (double) HEIGHT) * scale; 
 
-    cout << sphere.intersect(ray) << "\n";
+            vec3 dir = mat.multiply(vec3(x, y, -1), 1.0).normalize(); 
+            Ray ray (vec3(0.0, 0.0, 0.0), dir);
+
+            if(sphere.intersect(ray)) {
+                char color[1] = { 255 };
+                img.draw_point(i, j, color);
+            }
+        }
+    }
+
+    // img.save("test_trace.png");
+    img.display();
 }
