@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include "CImg.h"
+#include <vector>
 
 using namespace std;
 
@@ -11,23 +12,23 @@ class vec3
         vec3(double xCo, double yCo, double zCo) : 
             x(xCo), y(yCo), z(zCo) { }
 
-        vec3 operator+(const vec3 &other) {
+        vec3 operator+(const vec3 &other) const {
             return vec3(other.x + this->x, other.y + this->y, other.z + this->z);
         }
 
-        vec3 operator-(const vec3 &other) {
+        vec3 operator-(const vec3 &other) const {
             return vec3(other.x - this->x, other.y - this->y, other.z - this->z);
         }
 
-        vec3 operator-() {
+        vec3 operator-() const {
             return vec3(-this->x, -this->y, -this->z);
         }
 
-        vec3 operator*(const double scale) {
+        vec3 operator*(const double scale) const {
             return vec3(this->x * scale, this->y * scale, this->z * scale);
         }
 
-        double dot(const vec3 &other) {
+        double dot(const vec3 &other) const {
             return this->x * other.x + this->y * other.y + this->z * other.z;
         }
 
@@ -102,8 +103,8 @@ class Ray
         vec3 origin, dir;
         Ray(vec3 o, vec3 d) : origin(o), dir(d) { dir.normalize(); }
         
-        vec3 getPoint(double t) {
-            return origin + dir * t;
+        vec3 getPoint(const double t) const {
+            return this->origin + this->dir * t;
         }
 
         void print() {
@@ -118,6 +119,7 @@ class Shape
 {
     public:
         virtual bool intersect(Ray, double *) const = 0;
+        virtual vec3 normal(const vec3) const = 0;
         // virtual ~Shape();
 };
 
@@ -159,7 +161,7 @@ class Sphere : public Shape {
             return true;
         }
 
-        vec3 normal(const vec3 &surfacePoint) {
+        vec3 normal(const vec3 surfacePoint) const {
             vec3 normal = this->center - surfacePoint;
             normal.normalize();
             return normal;
@@ -169,12 +171,46 @@ class Sphere : public Shape {
 const int WIDTH = 2048;
 const int HEIGHT = 2048;
 
+Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
+    *t_min = -1;
+    double t = 0;
+    Shape * closest_shape;
+    for(int i = 0; i < shapes.size(); i++) {
+        if(shapes[i]->intersect(ray, &t))  {
+            if(t > 0 && (*t_min < 0 || *t_min > t)) {
+                *t_min = t;
+                closest_shape = shapes[i];
+            } 
+        }
+    }
+
+    return closest_shape;
+}
+
+void trace(const Ray &ray, vector<Shape *> &shapes, unsigned char * colors) {
+    double t, d;
+    Shape * closest_shape = findIntersect(ray, shapes, &t);
+    if(t < 0) {
+        colors[1] = 0.0;
+    } else {
+        vec3 intersect = ray.getPoint(t);
+        vec3 sphereNormal = closest_shape->normal(intersect);
+        double d = sphereNormal.dot(-ray.dir);
+        colors[0] = floor(d * 255);
+    }
+
+}
+
 int main() {
-    cimg_library::CImg<char> img(WIDTH, HEIGHT, 1, 1);
+    cimg_library::CImg<unsigned char> img(WIDTH, HEIGHT, 1, 1);
     img.fill(0.0);
 
-    vec3 center(0.0, 0.0, -2.0);
-    Sphere sphere(center, 1.0);
+    Sphere sphere1(vec3(0.0, 0.0, -2.0), 1.0);
+    Sphere sphere2(vec3(0.0, 0.0, -1.0), .25);
+
+    vector<Shape *> shapes(2);
+    shapes[0] = &sphere1;
+    shapes[1] = &sphere2;
 
     Matrix44 mat = Matrix44::identity();
 
@@ -187,15 +223,10 @@ int main() {
             vec3 dir = mat.multiply(vec3(x, y, -1), 1.0);
             dir.normalize();
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
-            double t;
 
-            if(sphere.intersect(ray, &t)) {
-                vec3 sphereNormal = sphere.normal(ray.getPoint(t));
-                double d = sphereNormal.dot(-ray.dir);
-
-                char color[1] = { (char)floor(255 * d) };
-                img.draw_point(i, j, color);
-            }
+            unsigned char colors[1];
+            trace(ray, shapes, colors);
+            img.draw_point(i, j, colors);
         }
     }
 
