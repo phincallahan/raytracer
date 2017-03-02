@@ -19,6 +19,10 @@ class vec3
             return vec3(other.x - this->x, other.y - this->y, other.z - this->z);
         }
 
+        vec3 operator*(const double scale) {
+            return vec3(this->x * scale, this->y * scale, this->z * scale);
+        }
+
         double dot(vec3 &other) {
             return this->x * other.x + this->y * other.y + this->z * other.z;
         }
@@ -102,7 +106,7 @@ class Ray
 class Shape 
 {
     public:
-        virtual bool intersect(Ray) const = 0;
+        virtual bool intersect(Ray, double *) const = 0;
         // virtual ~Shape();
 };
 
@@ -111,20 +115,45 @@ class Sphere : public Shape {
         vec3 center;
         double radius;
         Sphere(vec3 c, double r) : center(c), radius(r) { }
-        bool intersect(Ray ray) const {
+
+        //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
+        bool intersect(Ray ray, double *t) const {
             vec3 diff = ray.origin - this->center;
-            double c = ray.dir.dot(diff);
-            double l = diff.length();
-            double d = c * c - l * l + this->radius * this->radius;
-            return d >= 0.0;
+            double c = diff.length();
+            double b = ray.dir.dot(diff);
+            double d = b * b - c * c + this->radius * this->radius;
+
+            if(d < 0) {
+                *t = -1;
+                return false;
+            }
+
+            double t1 = b + sqrt(d);
+            double t2 = b - sqrt(d);
+
+            if(t1 < 0 && t2 < 0) {
+                return false;
+            }
+
+            if(t1 > 0 && t2 > 0) {
+                *t = fmin(t1, t2);
+            } else {
+                if (t1 > 0) {
+                    *t = t1;
+                } else {
+                    *t = t2;
+                }
+            }
+
+            return true;
         }
 };
 
-const int WIDTH = 512;
-const int HEIGHT = 512;
+const int WIDTH = 2048;
+const int HEIGHT = 2048;
 
 int main() {
-    cimg_library::CImg<unsigned char> img(WIDTH, HEIGHT, 1, 1);
+    cimg_library::CImg<unsigned float> img(WIDTH, HEIGHT, 1, 1);
     img.fill(0.0);
 
     vec3 center(0.0, 0.0, -2.0);
@@ -140,14 +169,14 @@ int main() {
 
             vec3 dir = mat.multiply(vec3(x, y, -1), 1.0).normalize(); 
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
+            double t;
 
-            if(sphere.intersect(ray)) {
-                char color[1] = { 255 };
+            if(sphere.intersect(ray, &t)) {
+                char color[1] = { 1.0, 0.5, (float) t/2.0 };
                 img.draw_point(i, j, color);
             }
         }
     }
 
-    // img.save("test_trace.png");
-    img.display();
+    img.save("test_trace.png");
 }
