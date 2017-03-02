@@ -27,7 +27,7 @@ class vec3
             return vec3(this->x * scale, this->y * scale, this->z * scale);
         }
 
-        double dot(vec3 &other) {
+        double dot(const vec3 &other) {
             return this->x * other.x + this->y * other.y + this->z * other.z;
         }
 
@@ -159,7 +159,7 @@ class Sphere : public Shape {
             return true;
         }
 
-        vec3 normal(vec3 surfacePoint) {
+        vec3 normal(const vec3 &surfacePoint) {
             vec3 normal = this->center - surfacePoint;
             normal.normalize();
             return normal;
@@ -190,7 +190,10 @@ int main() {
             double t;
 
             if(sphere.intersect(ray, &t)) {
-                char color[1] = { (char)floor(255 * t/2.0) };
+                vec3 sphereNormal = sphere.normal(ray.getPoint(t));
+                double d = sphereNormal.dot(-ray.dir);
+
+                char color[1] = { (char)floor(255 * d) };
                 img.draw_point(i, j, color);
             }
         }
