@@ -187,25 +187,25 @@ Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
     return closest_shape;
 }
 
-void trace(const Ray &ray, vector<Shape *> &shapes, unsigned char * colors) {
-    double t, d;
+void trace(const Ray &ray, vector<Shape *> &shapes, double * colors) {
+    double t;
     Shape * closest_shape = findIntersect(ray, shapes, &t);
     if(t < 0) {
-        colors[1] = 0.0;
+        colors[0] = 0.0;
     } else {
         vec3 intersect = ray.getPoint(t);
         vec3 sphereNormal = closest_shape->normal(intersect);
-        double d = sphereNormal.dot(-ray.dir);
-        colors[0] = floor(d * 255);
+        double diff = sphereNormal.dot(-ray.dir);
+        
+        colors[0] = diff;
     }
-
 }
 
 int main() {
-    cimg_library::CImg<unsigned char> img(WIDTH, HEIGHT, 1, 1);
+    cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 1);
     img.fill(0.0);
 
-    Sphere sphere1(vec3(0.0, 0.0, -2.0), 1.0);
+    Sphere sphere1(vec3(0.8, 0.0, -2.0), 1.0);
     Sphere sphere2(vec3(0.0, 0.0, -1.0), .25);
 
     vector<Shape *> shapes(2);
@@ -214,7 +214,7 @@ int main() {
 
     Matrix44 mat = Matrix44::identity();
 
-    double scale = tan(M_PI / 4);
+    double scale = tan(M_PI / 3);
     for(int i = 0; i < WIDTH; i++) {
         for(int j = 0; j < HEIGHT; j++) {
             double x = (2 * (i + 0.5) / (double) WIDTH - 1) *  scale; 
@@ -224,11 +224,12 @@ int main() {
             dir.normalize();
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
 
-            unsigned char colors[1];
+            double colors[1];
             trace(ray, shapes, colors);
             img.draw_point(i, j, colors);
         }
     }
 
+    img.normalize(0, 255);
     img.save("test_trace.png");
 }
