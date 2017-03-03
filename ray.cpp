@@ -28,6 +28,10 @@ class vec3
             return vec3(this->x * scale, this->y * scale, this->z * scale);
         }
 
+        vec3 operator*(const vec3 &other) const {
+            return vec3(this->x * other.x, this->y * other.y, this->z * other.z);
+        }
+
         double dot(const vec3 &other) const {
             return this->x * other.x + this->y * other.y + this->z * other.z;
         }
@@ -198,7 +202,46 @@ Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
     return closest_shape;
 }
 
-vec3 trace(const Ray &ray, vector<Shape *> &shapes, 
+// TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
+vec3 localLighting(const vec3 &intersect, const vec3 &normal, 
+                   const vec3 &camPos, 
+                   vector<Shape *> &shapes,
+                   vector<Light *> &lights) {
+    double intensity = 0.0, t;
+    vec3 camDir = camPos - intersect;
+    camDir.normalize();
+
+    for(int i = 0; i < lights.size(); i++) {
+        vec3 lightDir = lights[i]->pos - intersect;
+        lightDir.normalize();
+
+        if(normal.dot(lightDir) < 0) 
+            continue;
+
+        Ray shadowRay (intersect + lightDir * .000001, lightDir);
+        findIntersect(shadowRay, shapes, &t);
+
+        if (t >= 0) 
+            continue;
+
+        vec3 reflected = normal * 2 * normal.dot(lightDir) - lightDir;
+        reflected.normalize();
+
+        // Diffuse lighting
+        intensity += lightDir.dot(normal);
+        // Specular lighting
+        intensity += pow(camDir.dot(reflected), 32.0);
+    }
+
+    intensity = fmax(0.1, intensity);
+    intensity = fmin(1.0, intensity);
+
+    // TODO: TAKE INTO ACCOUNT COLOR OF LIGHTS
+    return vec3(intensity, intensity, intensity);
+}
+
+vec3 trace(const Ray &ray, const vec3 &cameraPos, 
+           vector<Shape *> &shapes, 
            vector<Light *> &lights) {
     double t;
     Shape * closest_shape = findIntersect(ray, shapes, &t);
@@ -208,25 +251,8 @@ vec3 trace(const Ray &ray, vector<Shape *> &shapes,
         vec3 intersect = ray.getPoint(t);
         vec3 normal = closest_shape->normal(intersect);
 
-        double diff;
-        for(int i = 0; i < lights.size(); i++) {
-            vec3 lightDir = lights[i]->pos - intersect;
-            lightDir.normalize();
-
-            if(normal.dot(lightDir) < 0) 
-                continue;
-
-            Ray shadowRay (intersect + lightDir * .000001, lightDir);
-            findIntersect(shadowRay, shapes, &t);
-
-            if (t < 0) 
-                diff += lightDir.dot(normal);
-        }
-
-        diff = fmax(0.1, diff);
-        diff = fmin(1.0, diff);
-
-        vec3 color = closest_shape->colorAt(intersect) * diff;
+        vec3 local = localLighting(intersect, normal, cameraPos, shapes, lights);
+        vec3 color = closest_shape->colorAt(intersect) * local;
         return color;
     }
 }
@@ -235,30 +261,36 @@ int main() {
     cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
     img.fill(0.0);
 
-    Sphere sphere1(vec3(0.0, 0.0, -2.0), vec3(1.0, 0.0, 0.0), 1.0);
-    Sphere sphere2(vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0), .25);
+    Sphere sphere1(vec3(0.0, 0.0, -2.5), vec3(1.0, 0.0, 0.0), 1.0);
+    Sphere sphere2(vec3(-0.25, 0.0, -1.0), vec3(0.0, 1.0, 0.0), .25);
 
     vector<Shape *> shapes(2);
     shapes[0] = &sphere1;
     shapes[1] = &sphere2;
 
-    Light light(vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 1.0));
+    Light light(vec3(-1.0, 1.0, 0.0), vec3(1.0, 1.0, 1.0));
     vector<Light *> lights(1);
     lights[0] = &light;
 
-    Matrix44 mat = Matrix44::identity();
+    // TODO: ADD IN CODE THAT PRODUCES 4x4 FROM ROTATION
+    // TODO: CREATE A 3x3 MATRIX CLASS
+    // TODO: PORT AXIS ROTATION
+    vec3 cameraPos = vec3(0.0, 0.0, 0.0);
+    Matrix44 cameraMatrix = Matrix44::identity();
 
     double scale = tan(M_PI / 3);
+
+    //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
         for(int j = 0; j < HEIGHT; j++) {
             double x = (2 * (i + 0.5) / (double) WIDTH - 1) *  scale; 
             double y = (1 - 2 * (j + 0.5) / (double) HEIGHT) * scale; 
 
-            vec3 dir = mat.multiply(vec3(x, y, -1), 1.0);
+            vec3 dir = cameraMatrix.multiply(vec3(x, y, -1), 1.0);
             dir.normalize();
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
 
-            vec3 c = trace(ray, shapes, lights);
+            vec3 c = trace(ray, cameraPos, shapes, lights);
             double colors[3] = { c.x, c.y, c.z };
             img.draw_point(i, j, colors);
         }
