@@ -203,11 +203,18 @@ Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
 }
 
 // TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
+
+//Uses the Phong Reflection Model
 vec3 localLighting(const vec3 &intersect, const vec3 &normal, 
                    const vec3 &camPos, 
                    vector<Shape *> &shapes,
                    vector<Light *> &lights) {
     double intensity = 0.0, t;
+    
+    // TODO: MOVE MATERIAL PROPERTIES INSIDE CLASS
+    double shinyness = 64.0;
+    double ks = .75, kd = .9;
+
     vec3 camDir = camPos - intersect;
     camDir.normalize();
 
@@ -228,9 +235,9 @@ vec3 localLighting(const vec3 &intersect, const vec3 &normal,
         reflected.normalize();
 
         // Diffuse lighting
-        intensity += lightDir.dot(normal);
+        intensity += kd * lightDir.dot(normal);
         // Specular lighting
-        intensity += pow(camDir.dot(reflected), 32.0);
+        intensity += ks * pow(camDir.dot(reflected), shinyness);
     }
 
     intensity = fmax(0.1, intensity);
@@ -275,6 +282,7 @@ int main() {
     // TODO: ADD IN CODE THAT PRODUCES 4x4 FROM ROTATION
     // TODO: CREATE A 3x3 MATRIX CLASS
     // TODO: PORT AXIS ROTATION
+    // TODO: IDENTIFY WEIRD PROJECTION ERROR
     vec3 cameraPos = vec3(0.0, 0.0, 0.0);
     Matrix44 cameraMatrix = Matrix44::identity();
 
