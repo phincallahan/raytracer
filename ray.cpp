@@ -17,7 +17,7 @@ class vec3
         }
 
         vec3 operator-(const vec3 &other) const {
-            return vec3(other.x - this->x, other.y - this->y, other.z - this->z);
+            return vec3(this->x - other.x, this->y - other.y, this->z - other.z);
         }
 
         vec3 operator-() const {
@@ -141,8 +141,8 @@ class Sphere : public Shape {
                 return false;
             }
 
-            double t1 = b + sqrt(d);
-            double t2 = b - sqrt(d);
+            double t1 = -b + sqrt(d);
+            double t2 = -b - sqrt(d);
 
             if(t1 < 0 && t2 < 0) {
                 return false;
@@ -162,10 +162,16 @@ class Sphere : public Shape {
         }
 
         vec3 normal(const vec3 surfacePoint) const {
-            vec3 normal = this->center - surfacePoint;
+            vec3 normal = surfacePoint - this->center;
             normal.normalize();
             return normal;
         }
+};
+
+class Light {
+    public: 
+        vec3 color, pos;
+        Light(vec3 p, vec3 col) : pos(p), color(col) { }
 };
 
 const int WIDTH = 2048;
@@ -187,16 +193,35 @@ Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
     return closest_shape;
 }
 
-void trace(const Ray &ray, vector<Shape *> &shapes, double * colors) {
+void trace(const Ray &ray, vector<Shape *> &shapes, 
+           vector<Light *> &lights, 
+           double * colors) {
     double t;
     Shape * closest_shape = findIntersect(ray, shapes, &t);
     if(t < 0) {
         colors[0] = 0.0;
     } else {
         vec3 intersect = ray.getPoint(t);
-        vec3 sphereNormal = closest_shape->normal(intersect);
-        double diff = sphereNormal.dot(-ray.dir);
-        
+        vec3 normal = closest_shape->normal(intersect);
+
+        double diff;
+        for(int i = 0; i < lights.size(); i++) {
+            vec3 lightDir = lights[i]->pos - intersect;
+            lightDir.normalize();
+
+            if(normal.dot(lightDir) < 0) 
+                continue;
+
+            Ray shadowRay (intersect + lightDir * .000001, lightDir);
+            findIntersect(shadowRay, shapes, &t);
+
+            if (t < 0) 
+                diff += lightDir.dot(normal);
+        }
+
+        diff = fmax(0.1, diff);
+        diff = fmin(1.0, diff);
+
         colors[0] = diff;
     }
 }
@@ -205,12 +230,16 @@ int main() {
     cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 1);
     img.fill(0.0);
 
-    Sphere sphere1(vec3(0.8, 0.0, -2.0), 1.0);
+    Sphere sphere1(vec3(0.0, 0.0, -2.0), 1.0);
     Sphere sphere2(vec3(0.0, 0.0, -1.0), .25);
 
     vector<Shape *> shapes(2);
     shapes[0] = &sphere1;
     shapes[1] = &sphere2;
+
+    Light light(vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 1.0));
+    vector<Light *> lights(1);
+    lights[0] = &light;
 
     Matrix44 mat = Matrix44::identity();
 
@@ -225,7 +254,7 @@ int main() {
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
 
             double colors[1];
-            trace(ray, shapes, colors);
+            trace(ray, shapes, lights, colors);
             img.draw_point(i, j, colors);
         }
     }
