@@ -120,14 +120,15 @@ class Shape
     public:
         virtual bool intersect(Ray, double *) const = 0;
         virtual vec3 normal(const vec3) const = 0;
+        virtual vec3 colorAt(const vec3) const = 0;
         // virtual ~Shape();
 };
 
 class Sphere : public Shape {
     public:
-        vec3 center;
+        vec3 center, color;
         double radius;
-        Sphere(vec3 c, double r) : center(c), radius(r) { }
+        Sphere(vec3 pos, vec3 col, double r) : center(pos), color(col), radius(r) { }
 
         //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
         bool intersect(Ray ray, double *t) const {
@@ -166,6 +167,10 @@ class Sphere : public Shape {
             normal.normalize();
             return normal;
         }
+
+        vec3 colorAt(const vec3 surfacePoint) const {
+            return this->color;
+        }
 };
 
 class Light {
@@ -193,13 +198,12 @@ Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
     return closest_shape;
 }
 
-void trace(const Ray &ray, vector<Shape *> &shapes, 
-           vector<Light *> &lights, 
-           double * colors) {
+vec3 trace(const Ray &ray, vector<Shape *> &shapes, 
+           vector<Light *> &lights) {
     double t;
     Shape * closest_shape = findIntersect(ray, shapes, &t);
     if(t < 0) {
-        colors[0] = 0.0;
+        return vec3(0.0, 0.0, 0.0);
     } else {
         vec3 intersect = ray.getPoint(t);
         vec3 normal = closest_shape->normal(intersect);
@@ -222,16 +226,17 @@ void trace(const Ray &ray, vector<Shape *> &shapes,
         diff = fmax(0.1, diff);
         diff = fmin(1.0, diff);
 
-        colors[0] = diff;
+        vec3 color = closest_shape->colorAt(intersect) * diff;
+        return color;
     }
 }
 
 int main() {
-    cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 1);
+    cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
     img.fill(0.0);
 
-    Sphere sphere1(vec3(0.0, 0.0, -2.0), 1.0);
-    Sphere sphere2(vec3(0.0, 0.0, -1.0), .25);
+    Sphere sphere1(vec3(0.0, 0.0, -2.0), vec3(1.0, 0.0, 0.0), 1.0);
+    Sphere sphere2(vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0), .25);
 
     vector<Shape *> shapes(2);
     shapes[0] = &sphere1;
@@ -253,8 +258,8 @@ int main() {
             dir.normalize();
             Ray ray (vec3(0.0, 0.0, 0.0), dir);
 
-            double colors[1];
-            trace(ray, shapes, lights, colors);
+            vec3 c = trace(ray, shapes, lights);
+            double colors[3] = { c.x, c.y, c.z };
             img.draw_point(i, j, colors);
         }
     }
