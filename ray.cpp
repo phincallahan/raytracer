@@ -3,6 +3,10 @@
 #include "CImg.h"
 #include <vector>
 
+/*
+* clang++ ray.cpp -I /usr/X11R6/include -L/usr/X11R6/lib -lm -lpthread -lX11 && ./a.out 
+*/
+
 using namespace std;
 
 class vec3 
@@ -203,6 +207,7 @@ Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
 }
 
 // TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
+// TODO: A
 
 //Uses the Phong Reflection Model
 vec3 localLighting(const vec3 &intersect, const vec3 &normal, 
