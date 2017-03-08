@@ -9,6 +9,11 @@
 
 using namespace std;
 
+double clamp(double v, double lo, double hi) {
+    v = v > lo ? v : lo;
+    return v < hi ? v : hi;
+}
+
 class vec3 
 {
     public:
@@ -17,6 +22,10 @@ class vec3
             x(xCo), y(yCo), z(zCo) { }
 
         vec3(double v) : x(v), y(v), z(v) { }
+
+        vec3() : vec3(0.0) { }
+
+        vec3(double v[3]) : vec3(v[0], v[1], v[2]) { }
 
         vec3 operator+(const vec3 &other) const {
             return vec3(other.x + this->x, other.y + this->y, other.z + this->z);
@@ -48,6 +57,42 @@ class vec3
             return vec3(this->x * other.x, this->y * other.y, this->z * other.z);
         }
 
+        double operator[](size_t index) const {
+            switch(index) {
+                case 0: return this->x;
+                case 1: return this->y;
+                case 2: return this->z;
+            }
+
+            throw std::out_of_range("vec3 out of range");
+        }
+
+        double& operator[](size_t index) {
+            switch(index) {
+                case 0: return this->x;
+                case 1: return this->y;
+                case 2: return this->z;
+            }
+
+            throw std::out_of_range("vec3 out of range");
+        }
+
+        vec3 clamp(double min, double max) const {
+            return vec3(
+                ::clamp(this->x, min, max), 
+                ::clamp(this->y, min, max), 
+                ::clamp(this->z, min, max)
+            );
+        }
+
+        vec3 cross(const vec3 &other) const {
+            return vec3(
+                y * other.z - z * other.y,
+                z * other.x - x * other.z,
+                x * other.y - y * other.x
+            );
+        }
+
         double dot(const vec3 &other) const {
             return this->x * other.x + this->y * other.y + this->z * other.z;
         }
@@ -70,51 +115,75 @@ class vec3
                  << ", " << this->z
                  << ")\n";
         }
+
+        static vec3 Spherical(double r, double phi, double theta) {
+            return vec3(
+                r * sin(phi) * cos(theta),
+                r * sin(phi) * sin(theta),
+                r * cos(phi)
+            );
+        }
 };
 
-class Matrix44 
+class Matrix33 
 {
     public: 
-        Matrix44() {
-            for(int i = 0; i < 16; i++) val[i] = 0.0;
+        Matrix33() {
+            for(int i = 0; i < 9; i++) val[i] = 0.0;
         }
 
         void set(int i, int j, double v) {
-            val[i*4 + j] = v;
+            val[i * 3 + j] = v;
         }
 
         double get(int i , int j) {
-            return val[i * 4 + j];
+            return val[i * 3 + j];
         }
 
         void print() {
-            for(int i = 0; i < 4; i++) {
-                for(int j = 0; j < 4; j++) {
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
                     cout << this->get(i,j) << " ";
                 }
                 cout << "\n";
             }
         }
 
-        static Matrix44 identity() {
-            Matrix44 mat = Matrix44();
-            for(int i = 0; i < 4; i++)
+        static Matrix33 Identity() {
+            Matrix33 mat = Matrix33();
+            for(int i = 0; i < 3; i++)
                 mat.set(i, i, 1.0);
 
             return mat;
         }
 
-        vec3 multiply(vec3 v, double end) {
-            vec3 ret = vec3(0.0, 0.0, 0.0);
-            ret.x = v.x * val[0] + v.y * val[1] + v.z * val[2] + end * val[3];
-            ret.y = v.x * val[4] + v.y * val[5] + v.z * val[6] + end * val[7];
-            ret.z = v.x * val[8] + v.y * val[9] + v.z * val[10] + end * val[11];
+        static Matrix33 BasisRotation(vec3 u, vec3 v, vec3 a, vec3 b) {
+            vec3 c = a.cross(b);
+            vec3 w = u.cross(v);
 
-            return ret;
+            Matrix33 rot;
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
+                    rot.set(i, j, u[j] * a[i] + v[j] * b[i] + w[j] * c[i]);
+                }
+            }
+
+            return rot;
+        }
+
+        vec3 operator*(vec3 v) {
+            vec3 w(0.0);
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
+                    w[i] += v[j] * this->get(i,j);
+                }
+            }
+
+            return w;
         }
 
     private:
-        double val[16];
+        double val[9];
 };
 
 class Ray 
@@ -134,65 +203,90 @@ class Ray
             this->dir.print();
         }
 };
+                            
+class Material 
+{
+    public:
+        double kr, ks, kd;
+        explicit Material(double kr_, double ks_, double kd_) :
+            kr(kr_), ks(ks_), kd(kd_) { }
+
+        virtual vec3 getColor() const = 0;
+};
+
+class ColorMaterial : public Material
+{
+    public: 
+        vec3 color;
+        vec3 getColor() const {
+            return this->color;
+        }
+
+        ColorMaterial(vec3 color_, double kr_, double ks_, double kd_) :
+            color(color_), Material(kr_, ks_, kd_) { }
+};
+
+class Intersection 
+{
+    public:
+        vec3 normal, pos;
+        double distance;
+        Material * material;
+        Intersection() : 
+            distance(-1), normal(vec3()), pos(vec3()), material() { }
+        Intersection(double d, vec3 pos_, vec3 normal_, Material * mat_) : 
+            distance(d), normal(normal_), pos(pos_), material(mat_) { }
+};
 
 class Shape 
 {
     public:
-        explicit Shape(double kr_) : kr(kr_) {}
-        double kr;
-        virtual bool intersect(Ray, double *) const = 0;
-        virtual vec3 normal(const vec3) const = 0;
-        virtual vec3 colorAt(const vec3) const = 0;
-        // virtual ~Shape();
+        virtual Intersection intersect(Ray) const = 0;
 };
 
-class Sphere : public Shape {
+class Sphere : public Shape 
+{
     public:
-        vec3 center, color;
+        vec3 center;
         double radius;
-        Sphere(vec3 pos, vec3 col, double r, double kr_) : 
-            center(pos), color(col), radius(r), Shape(kr_) { }
+        Material *material;
+        Sphere(vec3 pos, double r, Material *mat_) : 
+            center(pos), radius(r), material(mat_) { }
 
         //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
-        bool intersect(Ray ray, double *t) const {
+        Intersection intersect(Ray ray) const {
             vec3 diff = ray.origin - this->center;
-            double c = diff.length();
-            double b = ray.dir.dot(diff);
-            double d = b * b - c * c + this->radius * this->radius;
+            double a = ray.dir.dot(ray.dir);
+            double b = 2 * diff.dot(ray.dir);
+            double c = diff.dot(diff) - (this->radius * this->radius);
 
+            double d = b * b - 4 * a * c;
             if(d < 0) {
-                *t = -1;
-                return false;
+                return Intersection();
             }
 
-            double t1 = -b + sqrt(d);
-            double t2 = -b - sqrt(d);
+            d = sqrt(d);
 
-            if(t1 < 0 && t2 < 0) {
-                return false;
-            }
+            double q = 0.5 * (b < 0 ? (-b - d) : (-b + d));
+            double r1 = q / a;
+            double r2 = c / q;
 
-            if(t1 > 0 && t2 > 0) {
-                *t = fmin(t1, t2);
+            if(r1 < 0 && r2 < 0) return Intersection();
+
+            double distance;
+            if (r2 < 0) {
+                distance = r1;
+            } else if (r1 < 0 || r2 < r1) {
+                distance = r2;
             } else {
-                if (t1 > 0) {
-                    *t = t1;
-                } else {
-                    *t = t2;
-                }
+                distance = r1;
             }
 
-            return true;
-        }
-
-        vec3 normal(const vec3 surfacePoint) const {
-            vec3 normal = surfacePoint - this->center;
+            vec3 intersection = ray.origin + ray.dir * distance;
+            vec3 normal = intersection - this->center;
             normal.normalize();
-            return normal;
-        }
 
-        vec3 colorAt(const vec3 surfacePoint) const {
-            return this->color;
+            return Intersection(distance, intersection, normal, this->material);
         }
 };
 
@@ -202,69 +296,99 @@ class Light {
         Light(vec3 p, vec3 col) : pos(p), color(col) { }
 };
 
-const int WIDTH = 2048;
-const int HEIGHT = 2048;
+class Camera {
+    public: 
+        int width, height;
+        double scale;
+        vec3 pos;
+        Matrix33 rot;
 
-Shape* findIntersect(const Ray &ray, vector<Shape *> &shapes, double *t_min) {
-    *t_min = -1;
-    double t = 0;
-    Shape * closest_shape;
-    for(int i = 0; i < shapes.size(); i++) {
-        if(shapes[i]->intersect(ray, &t))  {
-            if(t > 0 && (*t_min < 0 || *t_min > t)) {
-                *t_min = t;
-                closest_shape = shapes[i];
-            } 
+        Camera(double fovy_, int width_, int height_) :
+               scale(tan(fovy_)), width(width_), height(height_) {
+        }
+
+        //Ported for Josh's camera code
+        void lookAt(vec3 target, double rho, double phi, double theta) {
+            vec3 yStd(0.0, 1.0, 0.0), zStd(0.0, 0.0, 1.0);
+            vec3 z = vec3::Spherical(1.0, phi, theta);
+            vec3 y = vec3::Spherical(1.0, M_PI / 2.0 - phi, theta + M_PI);            
+
+            this->rot = Matrix33::BasisRotation(yStd, zStd, y, z);
+            this->pos = z * rho + target;
+        }
+
+        Ray getRay(double screen_x, double screen_y) {
+            double x = (2 * screen_x / (double) width - 1) * scale; 
+            double y = (1 - 2 * screen_y / (double) height) * scale; 
+
+            vec3 dir = this->rot * vec3(x, y, -1);
+            dir.normalize();
+
+            return Ray(this->pos, dir);
+        }
+};
+
+
+void findIntersect(const Ray &ray, vector<Shape *> &shapes, Intersection *closest) {
+    Intersection i;
+    for(int k = 0; k < shapes.size(); k++) {
+        i = shapes[k]->intersect(ray);
+        if(i.distance > 0 && 
+            (closest->distance < 0 || closest->distance > i.distance)) {
+                *closest = i;
         }
     }
+}
 
-    return closest_shape;
+vec3 reflectAbout(vec3 incoming, vec3 axis) {
+    return axis * 2 * axis.dot(incoming) - incoming;
 }
 
 // TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
-// TODO: A
 
 //Uses the Phong Reflection Model
-vec3 localLighting(const vec3 &intersect, const vec3 &normal, 
-                   const vec3 &camPos, 
+vec3 localLighting(Intersection intersect, const vec3 &camPos, 
                    vector<Shape *> &shapes,
                    vector<Light *> &lights) {
-    double intensity = 0.0, t;
     
     // TODO: MOVE MATERIAL PROPERTIES INSIDE CLASS
-    double shinyness = 64.0;
-    double ks = .75, kd = .9;
+    Intersection shadowIntersection;
 
-    vec3 camDir = camPos - intersect;
+    vec3 camDir = camPos - intersect.pos, color;
     camDir.normalize();
 
     for(int i = 0; i < lights.size(); i++) {
-        vec3 lightDir = lights[i]->pos - intersect;
+        vec3 lightDir = lights[i]->pos - intersect.pos;
         lightDir.normalize();
 
-        if(normal.dot(lightDir) < 0) 
+        if(intersect.normal.dot(lightDir) < 0) 
             continue;
 
-        Ray shadowRay (intersect + lightDir * .0001, lightDir);
-        findIntersect(shadowRay, shapes, &t);
+        Ray shadowRay (intersect.pos + lightDir * .0001, lightDir);
+        findIntersect(shadowRay, shapes, &shadowIntersection);
 
-        if (t >= 0) 
+        if (shadowIntersection.distance > 0)
             continue;
 
-        vec3 reflected = normal * 2 * normal.dot(lightDir) - lightDir;
+        vec3 reflected = reflectAbout(lightDir, intersect.normal);
         reflected.normalize();
 
-        // Diffuse lighting
-        intensity += kd * lightDir.dot(normal);
-        // Specular lighting
-        intensity += ks * pow(camDir.dot(reflected), shinyness);
+        //Diffuse
+        color += intersect.material->getColor() * 
+                 intersect.material->kd * 
+                 lightDir.dot(intersect.normal);        
+
+        // Specular
+        color += lights[i]->color * 
+                 intersect.material->ks * 
+                 pow(camDir.dot(reflected), 64.0); 
     }
 
-    intensity = fmax(0.1, intensity);
-    intensity = fmin(1.0, intensity);
-
-    // TODO: TAKE INTO ACCOUNT COLOR OF LIGHTS
-    return vec3(intensity, intensity, intensity);
+    return vec3(
+        color.x > .1 ? color.x : .1,
+        color.y > .1 ? color.y : .1,
+        color.z > .1 ? color.z : .1
+    );
 }
 
 #define MAX_RAY_DEPTH 8
@@ -275,33 +399,45 @@ vec3 trace(const Ray &ray, const vec3 &cameraPos,
 
     if(depth >= MAX_RAY_DEPTH) return vec3(0.0);
 
-    double t;
-    Shape * closest_shape = findIntersect(ray, shapes, &t);
-    if(t < 0) {
+    Intersection intersection;
+    findIntersect(ray, shapes, &intersection);
+
+    if(intersection.distance < 0)
         return vec3(0.0);
-    } else {
-        vec3 intersect = ray.getPoint(t);
-        vec3 normal = closest_shape->normal(intersect);
-        vec3 reflDir = normal * 2 * normal.dot(-ray.dir) + ray.dir;
-        reflDir.normalize();
 
-        Ray reflRay (intersect + reflDir * .001, reflDir);
-        vec3 reflColor = trace(reflRay, cameraPos, shapes, lights, depth + 1);
+    // Get the reflected ray and calculate color
+    vec3 reflDir = reflectAbout(-ray.dir, intersection.normal);
+    reflDir.normalize();
 
-        vec3 local = localLighting(intersect, normal, cameraPos, shapes, lights);
-        vec3 color = closest_shape->colorAt(intersect) * local + reflColor * closest_shape->kr;
-        return color;
-    }
+    Ray reflRay (intersection.pos + reflDir * .001, reflDir);
+    vec3 reflColor = trace(reflRay, cameraPos, shapes, lights, depth + 1);
+
+    // Find the local color (specular, diffuse, ambient)
+    vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
+    vec3 color =  localColor + reflColor * intersection.material->kr;
+
+    return color;
 }
 
+// TODO: ADD COMMAND LINE OPTIONS
 int main() {
+    const int WIDTH = 512;
+    const int HEIGHT = 512;
+
     cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
     img.fill(0.0);
 
-    Sphere sphere1(vec3(0.0, 0.0, -8.0), vec3(0.6, 0.3, 0.3), .25, 1.0);
-    Sphere sphere2(vec3(-1.0, 0.0, -7.0), vec3(0.0, 1.0, 0.0), .25, 0.0);
-    Sphere sphere3(vec3(1.0, 1.0, -8.5), vec3(0.5, 0.5, 1.0), .25, 0.3);
-    Sphere sphere4(vec3(.75, -.75, -6.5), vec3(0.8, 0.2, 1.0), .25, 0.8);
+    ColorMaterial material1(vec3(0.6, 0.3, 0.3), 0.8, 1.0, 1.0);
+    Sphere sphere1(vec3(0.0, 0.0, 0.0), 1.0, &material1);
+
+    ColorMaterial material2(vec3(0.0, 1.0, 0.0), 0.0, 1.0, 1.0);
+    Sphere sphere2(vec3(-1.0, 0.0, 1.0), .25, &material2);
+
+    ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.3, 1.0, 1.0);
+    Sphere sphere3(vec3(1.0, 1.0, -0.5), .25, &material3);
+
+    ColorMaterial material4(vec3(0.8, 0.2, 1.0), 0.8, 1.0, 1.0);
+    Sphere sphere4(vec3(.75, -.75, 2.0), .66, &material4);
 
     vector<Shape *> shapes(4);
     shapes[0] = &sphere1;
@@ -309,21 +445,17 @@ int main() {
     shapes[2] = &sphere3;
     shapes[3] = &sphere4;
 
-    Light light1(vec3(2.0, 6.0, 0.0), vec3(1.0));
-    Light light2(vec3(-2.0, -18.0, 2.0), vec3(0.8));
+    Light light1(vec3(0.0, 6.0, 2.0), vec3(1.0));
 
-    vector<Light *> lights(2);
+    vector<Light *> lights(1);
     lights[0] = &light1;
-    lights[1] = &light2;
 
-    // TODO: ADD IN CODE THAT PRODUCES 4x4 FROM ROTATION
-    // TODO: CREATE A 3x3 MATRIX CLASS
     // TODO: PORT AXIS ROTATION
-    // TODO: IDENTIFY WEIRD PROJECTION ERROR
-    vec3 cameraPos = vec3(0.0, 0.0, 0.0);
-    Matrix44 cameraMatrix = Matrix44::identity();
 
-    double scale = tan(M_PI / 15);
+    vec3 target = vec3(0.0, 0.0, 0.0);
+
+    Camera cam(M_PI/15, WIDTH, HEIGHT);
+    cam.lookAt(target, 10.0, 0.0, -M_PI/4);
 
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
@@ -337,14 +469,9 @@ int main() {
                     double y_off = (0.5/GRID_SIZE) + (l/GRID_SIZE);
                     double x_off = (0.5/GRID_SIZE) + (k/GRID_SIZE);
 
-                    double x = (2 * (i + y_off) / (double) WIDTH - 1) *  scale; 
-                    double y = (1 - 2 * (j + x_off) / (double) HEIGHT) * scale; 
+                    Ray ray = cam.getRay(i + x_off, j + y_off);
 
-                    vec3 dir = cameraMatrix.multiply(vec3(x, y, -1), 1.0);
-                    dir.normalize();
-                    Ray ray (vec3(0.0, 0.0, 0.0), dir);
-
-                    vec3 col = trace(ray, cameraPos, shapes, lights, 0);
+                    vec3 col = trace(ray, cam.pos, shapes, lights, 0);
                     c += col;
                 }
             }
@@ -357,5 +484,5 @@ int main() {
     }
 
     img.normalize(0, 255);
-    img.save("test_trace.png");
+    img.save("rotate5.png");
 }
