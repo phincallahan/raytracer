@@ -7,184 +7,70 @@
 * clang++ ray.cpp -I /usr/X11R6/include -L/usr/X11R6/lib -lm -lpthread -lX11 && ./a.out 
 */
 
+#include "vec3.h"
+#include "Matrix33.h"
+
 using namespace std;
 
-double clamp(double v, double lo, double hi) {
-    v = v > lo ? v : lo;
-    return v < hi ? v : hi;
-}
+// class Matrix33 {
+//     public: 
+//         Matrix33() {
+//             for(int i = 0; i < 9; i++) val[i] = 0.0;
+//         }
 
-class vec3 
-{
-    public:
-        double x, y, z;
-        vec3(double xCo, double yCo, double zCo) : 
-            x(xCo), y(yCo), z(zCo) { }
+//         void set(int i, int j, double v) {
+//             val[i * 3 + j] = v;
+//         }
 
-        vec3(double v) : x(v), y(v), z(v) { }
+//         double get(int i , int j) {
+//             return val[i * 3 + j];
+//         }
 
-        vec3() : vec3(0.0) { }
+//         void print() {
+//             for(int i = 0; i < 3; i++) {
+//                 for(int j = 0; j < 3; j++) {
+//                     cout << this->get(i,j) << " ";
+//                 }
+//                 cout << "\n";
+//             }
+//         }
 
-        vec3(double v[3]) : vec3(v[0], v[1], v[2]) { }
+//         static Matrix33 Identity() {
+//             Matrix33 mat = Matrix33();
+//             for(int i = 0; i < 3; i++)
+//                 mat.set(i, i, 1.0);
 
-        vec3 operator+(const vec3 &other) const {
-            return vec3(other.x + this->x, other.y + this->y, other.z + this->z);
-        }
+//             return mat;
+//         }
 
-        void operator+=(const vec3 &other) {
-            this->x += other.x;
-            this->y += other.y;
-            this->z += other.z;
-        }
+//         static Matrix33 BasisRotation(vec3 u, vec3 v, vec3 a, vec3 b) {
+//             vec3 c = cross(a, b);
+//             vec3 w = cross(u, v);
 
-        vec3 operator-(const vec3 &other) const {
-            return vec3(this->x - other.x, this->y - other.y, this->z - other.z);
-        }
+//             Matrix33 rot;
+//             for(int i = 0; i < 3; i++) {
+//                 for(int j = 0; j < 3; j++) {
+//                     rot.set(i, j, u[j] * a[i] + v[j] * b[i] + w[j] * c[i]);
+//                 }
+//             }
 
-        vec3 operator-() const {
-            return vec3(-this->x, -this->y, -this->z);
-        }
+//             return rot;
+//         }
 
-        vec3 operator*(const double scale) const {
-            return vec3(this->x * scale, this->y * scale, this->z * scale);
-        }
+//         vec3 operator*(vec3 v) {
+//             vec3 w(0.0);
+//             for(int i = 0; i < 3; i++) {
+//                 for(int j = 0; j < 3; j++) {
+//                     w[i] += this->get(i,j) * v[j];
+//                 }
+//             }
 
-        vec3 operator/(const double scale) const {
-            return vec3(this->x / scale, this->y / scale, this->z / scale);
-        }
+//             return w;
+//         }
 
-        vec3 operator*(const vec3 &other) const {
-            return vec3(this->x * other.x, this->y * other.y, this->z * other.z);
-        }
-
-        double operator[](size_t index) const {
-            switch(index) {
-                case 0: return this->x;
-                case 1: return this->y;
-                case 2: return this->z;
-            }
-
-            throw std::out_of_range("vec3 out of range");
-        }
-
-        double& operator[](size_t index) {
-            switch(index) {
-                case 0: return this->x;
-                case 1: return this->y;
-                case 2: return this->z;
-            }
-
-            throw std::out_of_range("vec3 out of range");
-        }
-
-        vec3 clamp(double min, double max) const {
-            return vec3(
-                ::clamp(this->x, min, max), 
-                ::clamp(this->y, min, max), 
-                ::clamp(this->z, min, max)
-            );
-        }
-
-        vec3 cross(const vec3 &other) const {
-            return vec3(
-                y * other.z - z * other.y,
-                z * other.x - x * other.z,
-                x * other.y - y * other.x
-            );
-        }
-
-        double dot(const vec3 &other) const {
-            return this->x * other.x + this->y * other.y + this->z * other.z;
-        }
-
-        double length() {
-            double s = this->x * this->x + this->y * this->y + this->z * this->z;
-            return sqrt(s);
-        }
-
-        void normalize() {
-            double length = this->length();
-            this->x /= length;
-            this->y /= length;
-            this->z /= length;
-        }
-
-        void print() {
-            cout << "(" << this->x
-                 << ", " << this->y
-                 << ", " << this->z
-                 << ")\n";
-        }
-
-        static vec3 Spherical(double r, double phi, double theta) {
-            return vec3(
-                r * sin(phi) * cos(theta),
-                r * sin(phi) * sin(theta),
-                r * cos(phi)
-            );
-        }
-};
-
-class Matrix33 
-{
-    public: 
-        Matrix33() {
-            for(int i = 0; i < 9; i++) val[i] = 0.0;
-        }
-
-        void set(int i, int j, double v) {
-            val[i * 3 + j] = v;
-        }
-
-        double get(int i , int j) {
-            return val[i * 3 + j];
-        }
-
-        void print() {
-            for(int i = 0; i < 3; i++) {
-                for(int j = 0; j < 3; j++) {
-                    cout << this->get(i,j) << " ";
-                }
-                cout << "\n";
-            }
-        }
-
-        static Matrix33 Identity() {
-            Matrix33 mat = Matrix33();
-            for(int i = 0; i < 3; i++)
-                mat.set(i, i, 1.0);
-
-            return mat;
-        }
-
-        static Matrix33 BasisRotation(vec3 u, vec3 v, vec3 a, vec3 b) {
-            vec3 c = a.cross(b);
-            vec3 w = u.cross(v);
-
-            Matrix33 rot;
-            for(int i = 0; i < 3; i++) {
-                for(int j = 0; j < 3; j++) {
-                    rot.set(i, j, u[j] * a[i] + v[j] * b[i] + w[j] * c[i]);
-                }
-            }
-
-            return rot;
-        }
-
-        vec3 operator*(vec3 v) {
-            vec3 w(0.0);
-            for(int i = 0; i < 3; i++) {
-                for(int j = 0; j < 3; j++) {
-                    w[i] += v[j] * this->get(i,j);
-                }
-            }
-
-            return w;
-        }
-
-    private:
-        double val[9];
-};
+//     private:
+//         double val[9];
+// };
 
 class Ray 
 {
@@ -197,10 +83,8 @@ class Ray
         }
 
         void print() {
-            cout << "Origin: ";
-            this->origin.print();
-            cout << "Direction: ";
-            this->dir.print();
+            cout << "Origin: " << origin << endl;
+            cout << "Direction: " << dir << endl;
         }
 };
                             
@@ -255,10 +139,10 @@ class Sphere : public Shape
 
         //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
         Intersection intersect(Ray ray) const {
-            vec3 diff = ray.origin - this->center;
-            double a = ray.dir.dot(ray.dir);
-            double b = 2 * diff.dot(ray.dir);
-            double c = diff.dot(diff) - (this->radius * this->radius);
+            vec3 diff = ray.origin - center;
+            double a = dot(ray.dir, ray.dir);
+            double b = 2 * dot(diff, ray.dir);
+            double c = dot(diff, diff) - (radius * radius);
 
             double d = b * b - 4 * a * c;
             if(d < 0) {
@@ -341,7 +225,7 @@ void findIntersect(const Ray &ray, vector<Shape *> &shapes, Intersection *closes
 }
 
 vec3 reflectAbout(vec3 incoming, vec3 axis) {
-    return axis * 2 * axis.dot(incoming) - incoming;
+    return 2 * dot(axis, incoming) * axis - incoming;
 }
 
 // TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
@@ -361,7 +245,7 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
         vec3 lightDir = lights[i]->pos - intersect.pos;
         lightDir.normalize();
 
-        if(intersect.normal.dot(lightDir) < 0) 
+        if(dot(intersect.normal, lightDir) < 0) 
             continue;
 
         Ray shadowRay (intersect.pos + lightDir * .0001, lightDir);
@@ -376,12 +260,12 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
         //Diffuse
         color += intersect.material->getColor() * 
                  intersect.material->kd * 
-                 lightDir.dot(intersect.normal);        
+                 dot(lightDir, intersect.normal);        
 
         // Specular
         color += lights[i]->color * 
                  intersect.material->ks * 
-                 pow(camDir.dot(reflected), 64.0); 
+                 pow(dot(camDir, reflected), 64.0); 
     }
 
     return vec3(
@@ -424,6 +308,8 @@ int main() {
     const int WIDTH = 512;
     const int HEIGHT = 512;
 
+    cout << vec3::Spherical(1.0, 0.0, 0.0) << endl;
+
     cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
     img.fill(0.0);
 
@@ -431,13 +317,13 @@ int main() {
     Sphere sphere1(vec3(0.0, 0.0, 0.0), 1.0, &material1);
 
     ColorMaterial material2(vec3(0.0, 1.0, 0.0), 0.0, 1.0, 1.0);
-    Sphere sphere2(vec3(-1.0, 0.0, 1.0), .25, &material2);
+    Sphere sphere2(vec3(-1.0, 1.0, 0.0), .25, &material2);
 
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.3, 1.0, 1.0);
-    Sphere sphere3(vec3(1.0, 1.0, -0.5), .25, &material3);
+    Sphere sphere3(vec3(1.0, -0.5, 0.0), .25, &material3);
 
     ColorMaterial material4(vec3(0.8, 0.2, 1.0), 0.8, 1.0, 1.0);
-    Sphere sphere4(vec3(.75, -.75, 2.0), .66, &material4);
+    Sphere sphere4(vec3(.75, 2.0, 1.0), .66, &material4);
 
     vector<Shape *> shapes(4);
     shapes[0] = &sphere1;
@@ -450,12 +336,10 @@ int main() {
     vector<Light *> lights(1);
     lights[0] = &light1;
 
-    // TODO: PORT AXIS ROTATION
-
     vec3 target = vec3(0.0, 0.0, 0.0);
 
     Camera cam(M_PI/15, WIDTH, HEIGHT);
-    cam.lookAt(target, 10.0, 0.0, -M_PI/4);
+    cam.lookAt(target, 10.0, M_PI/4.0, M_PI/4.0);
 
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
