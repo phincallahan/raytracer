@@ -4,62 +4,42 @@
 #include <vector>
 
 /*
-* clang++ ray.cpp -I /usr/X11R6/include -L/usr/X11R6/lib -lm -lpthread -lX11 && ./a.out 
+* clang++ main.cpp -I /usr/X11R6/include -L/usr/X11R6/lib -lm -lpthread -lX11 -std=c++11 && ./a.out
 */
 
 #include "vec3.h"
 #include "Matrix33.h"
 #include "Ray.h"
+#include "Material.h"
 
 using namespace std;
 
-class Material 
-{
-    public:
-        double kr, ks, kd;
-        explicit Material(double kr_, double ks_, double kd_) :
-            kr(kr_), ks(ks_), kd(kd_) { }
 
-        virtual vec3 getColor() const = 0;
-};
-
-class ColorMaterial : public Material
-{
-    public: 
-        vec3 color;
-        vec3 getColor() const {
-            return this->color;
-        }
-
-        ColorMaterial(vec3 color_, double kr_, double ks_, double kd_) :
-            color(color_), Material(kr_, ks_, kd_) { }
-};
-
-class Intersection 
+class Intersection
 {
     public:
         vec3 normal, pos;
         double distance;
         Material * material;
-        Intersection() : 
+        Intersection() :
             distance(-1), normal(vec3()), pos(vec3()), material() { }
-        Intersection(double d, vec3 pos_, vec3 normal_, Material * mat_) : 
+        Intersection(double d, vec3 pos_, vec3 normal_, Material * mat_) :
             distance(d), normal(normal_), pos(pos_), material(mat_) { }
 };
 
-class Shape 
+class Shape
 {
     public:
         virtual Intersection intersect(Ray) const = 0;
 };
 
-class Sphere : public Shape 
+class Sphere : public Shape
 {
     public:
         vec3 center;
         double radius;
         Material *material;
-        Sphere(vec3 pos, double r, Material *mat_) : 
+        Sphere(vec3 pos, double r, Material *mat_) :
             center(pos), radius(r), material(mat_) { }
 
         //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
@@ -100,13 +80,13 @@ class Sphere : public Shape
 };
 
 class Light {
-    public: 
+    public:
         vec3 color, pos;
         Light(vec3 p, vec3 col) : pos(p), color(col) { }
 };
 
 class Camera {
-    public: 
+    public:
         int width, height;
         double scale;
         vec3 pos;
@@ -120,15 +100,15 @@ class Camera {
         void lookAt(vec3 target, double rho, double phi, double theta) {
             vec3 yStd(0.0, 1.0, 0.0), zStd(0.0, 0.0, 1.0);
             vec3 z = vec3::Spherical(1.0, phi, theta);
-            vec3 y = vec3::Spherical(1.0, M_PI / 2.0 - phi, theta + M_PI);            
+            vec3 y = vec3::Spherical(1.0, M_PI / 2.0 - phi, theta + M_PI);
 
             this->rot = Matrix33::BasisRotation(yStd, zStd, y, z);
             this->pos = z * rho + target;
         }
 
         Ray getRay(double screen_x, double screen_y) {
-            double x = (2 * screen_x / (double) width - 1) * scale; 
-            double y = (1 - 2 * screen_y / (double) height) * scale; 
+            double x = (2 * screen_x / (double) width - 1) * scale;
+            double y = (1 - 2 * screen_y / (double) height) * scale;
 
             vec3 dir = this->rot * vec3(x, y, -1);
             dir.normalize();
@@ -142,7 +122,7 @@ void findIntersect(const Ray &ray, vector<Shape *> &shapes, Intersection *closes
     Intersection i;
     for(int k = 0; k < shapes.size(); k++) {
         i = shapes[k]->intersect(ray);
-        if(i.distance > 0 && 
+        if(i.distance > 0 &&
             (closest->distance < 0 || closest->distance > i.distance)) {
                 *closest = i;
         }
@@ -156,10 +136,10 @@ vec3 reflectAbout(vec3 incoming, vec3 axis) {
 // TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
 
 //Uses the Phong Reflection Model
-vec3 localLighting(Intersection intersect, const vec3 &camPos, 
+vec3 localLighting(Intersection intersect, const vec3 &camPos,
                    vector<Shape *> &shapes,
                    vector<Light *> &lights) {
-    
+
     // TODO: MOVE MATERIAL PROPERTIES INSIDE CLASS
     Intersection shadowIntersection;
 
@@ -170,7 +150,7 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
         vec3 lightDir = lights[i]->pos - intersect.pos;
         lightDir.normalize();
 
-        if(dot(intersect.normal, lightDir) < 0) 
+        if(dot(intersect.normal, lightDir) < 0)
             continue;
 
         Ray shadowRay (intersect.pos + lightDir * .0001, lightDir);
@@ -183,14 +163,14 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
         reflected.normalize();
 
         //Diffuse
-        color += intersect.material->getColor() * 
-                 intersect.material->kd * 
-                 dot(lightDir, intersect.normal);        
+        color += intersect.material->getColor() *
+                 intersect.material->kd *
+                 dot(lightDir, intersect.normal);
 
         // Specular
-        color += lights[i]->color * 
-                 intersect.material->ks * 
-                 pow(dot(camDir, reflected), 64.0); 
+        color += lights[i]->color *
+                 intersect.material->ks *
+                 pow(dot(camDir, reflected), 64.0);
     }
 
     return vec3(
@@ -202,8 +182,8 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
 
 #define MAX_RAY_DEPTH 8
 
-vec3 trace(const Ray &ray, const vec3 &cameraPos, 
-           vector<Shape *> &shapes, 
+vec3 trace(const Ray &ray, const vec3 &cameraPos,
+           vector<Shape *> &shapes,
            vector<Light *> &lights, int depth) {
 
     if(depth >= MAX_RAY_DEPTH) return vec3(0.0);
