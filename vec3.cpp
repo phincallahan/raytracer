@@ -89,6 +89,11 @@ vec3 cross(const vec3 &v, const vec3 &w) {
     );
 }
 
+vec3 normalize(const vec3 &v) {
+    double l = v.length();
+    return (1/l) * v;
+}
+
 std::ostream& operator<<(std::ostream& os, const vec3& v) {  
     os << "(" << v.x << "," << v.y << "," << v.z << ")";
     return os;  

@@ -21,7 +21,6 @@ class vec3 {
         vec3 operator/(const double s) const;
         
         friend vec3 operator*(const double s, const vec3 &v) { return v * s; };
-        friend vec3 operator/(const double s, const vec3 &v) { return v / s; };
 
         double operator[](size_t index) const;
         double& operator[](size_t index);
@@ -31,6 +30,7 @@ class vec3 {
 
         friend vec3 cross(const vec3 &v, const vec3& w);
         friend double dot(const vec3 &v, const vec3& w);
+        friend vec3 normalize(const vec3 &v);
 
         static vec3 Spherical(double r, double phi, double theta);
 

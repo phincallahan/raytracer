@@ -10,4 +10,6 @@ class Matrix33 {
 
         static Matrix33 Identity();
         static Matrix33 BasisRotation(vec3 u, vec3 v, vec3 a, vec3 b);
+
+        friend std::ostream& operator<<(std::ostream& os, const Matrix33& mat);
 };

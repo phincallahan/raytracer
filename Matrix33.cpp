@@ -43,3 +43,10 @@ Matrix33 Matrix33::BasisRotation(vec3 u, vec3 v, vec3 a, vec3 b) {
 
     return rot;
 }
+
+std::ostream& operator<<(std::ostream& os, const Matrix33& mat) {
+    for(int i = 0; i < 3; i++)
+        for(int j = 0; j < 3; j++)
+            os << mat(i,j) << j == 2 ? ", " : "\n";
+    return os;
+}
