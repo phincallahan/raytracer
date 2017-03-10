@@ -1,3 +1,6 @@
+#ifndef VEC3_H
+#define VEC3_H
+
 #include <iosfwd>
 
 class vec3 {
@@ -36,3 +39,5 @@ class vec3 {
 
         friend std::ostream& operator<<(std::ostream& os, const vec3& v);
 };
+
+#endif

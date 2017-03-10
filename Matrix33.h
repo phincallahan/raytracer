@@ -1,3 +1,8 @@
+#ifndef MATRIX33_H
+#define MATRIX33_H
+
+#include "vec3.h"
+
 class Matrix33 {
     double val[9] = { 0.0 };
     public: 
@@ -13,3 +18,5 @@ class Matrix33 {
 
         friend std::ostream& operator<<(std::ostream& os, const Matrix33& mat);
 };
+
+#endif MATRIX33_H

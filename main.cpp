@@ -13,22 +13,6 @@
 
 using namespace std;
 
-// class Ray 
-// {
-// public:
-//         vec3 origin, dir;
-//         Ray(vec3 o, vec3 d) : origin(o), dir(d) { dir.normalize(); }
-        
-//         vec3 getPoint(const double t) const {
-//             return this->origin + this->dir * t;
-//         }
-
-//         void print() {
-//             cout << "Origin: " << origin << endl;
-//             cout << "Direction: " << dir << endl;
-//         }
-// };
-                            
 class Material 
 {
     public:
