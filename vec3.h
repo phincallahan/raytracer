@@ -22,7 +22,7 @@ class vec3 {
 
         vec3 operator*(const double s) const;
         vec3 operator/(const double s) const;
-        
+
         friend vec3 operator*(const double s, const vec3 &v) { return v * s; };
 
         double operator[](size_t index) const;

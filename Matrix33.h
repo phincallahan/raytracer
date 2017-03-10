@@ -5,7 +5,7 @@
 
 class Matrix33 {
     double val[9] = { 0.0 };
-    public: 
+    public:
         Matrix33();
 
         double operator()(size_t i, size_t j) const;
@@ -19,4 +19,4 @@ class Matrix33 {
         friend std::ostream& operator<<(std::ostream& os, const Matrix33& mat);
 };
 
-#endif MATRIX33_H
+#endif
