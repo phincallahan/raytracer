@@ -78,7 +78,7 @@ vec3 vec3::Spherical(double r, double phi, double theta) {
 }
 
 double dot(const vec3 &v, const vec3 &w) {
-    return w.x * v.y + w.y * v.y + w.z * v.z;
+    return w.x * v.x + w.y * v.y + w.z * v.z;
 }
 
 vec3 cross(const vec3 &v, const vec3 &w) {
@@ -91,7 +91,7 @@ vec3 cross(const vec3 &v, const vec3 &w) {
 
 vec3 normalize(const vec3 &v) {
     double l = v.length();
-    return (1/l) * v;
+    return (1.0/l) * v;
 }
 
 std::ostream& operator<<(std::ostream& os, const vec3& v) {  

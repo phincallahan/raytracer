@@ -118,15 +118,17 @@ class Camera {
 };
 
 
-void findIntersect(const Ray &ray, vector<Shape *> &shapes, Intersection *closest) {
-    Intersection i;
-    for(int k = 0; k < shapes.size(); k++) {
-        i = shapes[k]->intersect(ray);
+Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
+    Intersection i, closest;
+    for( auto& shape : shapes) {
+        i = shape->intersect(ray);
         if(i.distance > 0 &&
-            (closest->distance < 0 || closest->distance > i.distance)) {
-                *closest = i;
+            (closest.distance < 0 || closest.distance > i.distance)) {
+                closest = i;
         }
     }
+
+    return closest;
 }
 
 vec3 reflectAbout(vec3 incoming, vec3 axis) {
@@ -140,21 +142,18 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
                    vector<Shape *> &shapes,
                    vector<Light *> &lights) {
 
-    // TODO: MOVE MATERIAL PROPERTIES INSIDE CLASS
-    Intersection shadowIntersection;
-
     vec3 camDir = camPos - intersect.pos, color;
     camDir.normalize();
 
-    for(int i = 0; i < lights.size(); i++) {
-        vec3 lightDir = lights[i]->pos - intersect.pos;
+    for( auto& light: lights) {
+        vec3 lightDir = light->pos - intersect.pos;
         lightDir.normalize();
 
         if(dot(intersect.normal, lightDir) < 0)
             continue;
 
         Ray shadowRay (intersect.pos + lightDir * .0001, lightDir);
-        findIntersect(shadowRay, shapes, &shadowIntersection);
+        Intersection shadowIntersection = findIntersect(shadowRay, shapes);
 
         if (shadowIntersection.distance > 0)
             continue;
@@ -162,13 +161,13 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
         vec3 reflected = reflectAbout(lightDir, intersect.normal);
         reflected.normalize();
 
-        //Diffuse
+        // Diffuse
         color += intersect.material->getColor() *
                  intersect.material->kd *
                  dot(lightDir, intersect.normal);
 
         // Specular
-        color += lights[i]->color *
+        color += light->color *
                  intersect.material->ks *
                  pow(dot(camDir, reflected), 64.0);
     }
@@ -188,8 +187,7 @@ vec3 trace(const Ray &ray, const vec3 &cameraPos,
 
     if(depth >= MAX_RAY_DEPTH) return vec3(0.0);
 
-    Intersection intersection;
-    findIntersect(ray, shapes, &intersection);
+    Intersection intersection = findIntersect(ray, shapes);
 
     if(intersection.distance < 0)
         return vec3(0.0);
@@ -213,8 +211,6 @@ int main() {
     const int WIDTH = 512;
     const int HEIGHT = 512;
 
-    cout << vec3::Spherical(1.0, 0.0, 0.0) << endl;
-
     cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
     img.fill(0.0);
 
@@ -237,14 +233,16 @@ int main() {
     shapes[3] = &sphere4;
 
     Light light1(vec3(0.0, 6.0, 2.0), vec3(1.0));
+    Light light2(vec3(-8.0, -6.0, 2.0), vec3(1.0));
 
-    vector<Light *> lights(1);
+    vector<Light *> lights(2);
     lights[0] = &light1;
+    lights[1] = &light2;
 
     vec3 target = vec3(0.0, 0.0, 0.0);
 
     Camera cam(M_PI/15, WIDTH, HEIGHT);
-    cam.lookAt(target, 10.0, M_PI/4.0, M_PI/4.0);
+    cam.lookAt(target, 10.0, 0.0, 0.0);
 
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
@@ -252,7 +250,7 @@ int main() {
 
             // TODO: PUT ALL OF THIS IN A SAMPLE FUNCTION
             vec3 c (0.0);
-            double GRID_SIZE = 3;
+            double GRID_SIZE = 1;
             for(int k = 0; k < GRID_SIZE; k++) {
                 for(int l = 0; l < GRID_SIZE; l++) {
                     double y_off = (0.5/GRID_SIZE) + (l/GRID_SIZE);
