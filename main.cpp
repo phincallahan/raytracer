@@ -151,7 +151,7 @@ int main() {
 
             // TODO: PUT ALL OF THIS IN A SAMPLE FUNCTION
             vec3 c (0.0);
-            double GRID_SIZE = 1;
+            double GRID_SIZE = 3;
             for(int k = 0; k < GRID_SIZE; k++) {
                 for(int l = 0; l < GRID_SIZE; l++) {
                     double y_off = (0.5/GRID_SIZE) + (l/GRID_SIZE);
