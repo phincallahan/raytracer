@@ -12,79 +12,12 @@
 #include "Ray.h"
 #include "Material.h"
 #include "Camera.h"
+#include "Sphere.h"
+#include "Shape.h"
+#include "Intersection.h"
+#include "Light.h"
 
 using namespace std;
-
-
-class Intersection
-{
-    public:
-        vec3 normal, pos;
-        double distance;
-        Material * material;
-        Intersection() :
-            distance(-1), normal(vec3()), pos(vec3()), material() { }
-        Intersection(double d, vec3 pos_, vec3 normal_, Material * mat_) :
-            distance(d), normal(normal_), pos(pos_), material(mat_) { }
-};
-
-class Shape
-{
-    public:
-        virtual Intersection intersect(Ray) const = 0;
-};
-
-class Sphere : public Shape
-{
-    public:
-        vec3 center;
-        double radius;
-        Material *material;
-        Sphere(vec3 pos, double r, Material *mat_) :
-            center(pos), radius(r), material(mat_) { }
-
-        //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
-        Intersection intersect(Ray ray) const {
-            vec3 diff = ray.origin - center;
-            double a = dot(ray.dir, ray.dir);
-            double b = 2 * dot(diff, ray.dir);
-            double c = dot(diff, diff) - (radius * radius);
-
-            double d = b * b - 4 * a * c;
-            if(d < 0) {
-                return Intersection();
-            }
-
-            d = sqrt(d);
-
-            double q = 0.5 * (b < 0 ? (-b - d) : (-b + d));
-            double r1 = q / a;
-            double r2 = c / q;
-
-            if(r1 < 0 && r2 < 0) return Intersection();
-
-            double distance;
-            if (r2 < 0) {
-                distance = r1;
-            } else if (r1 < 0 || r2 < r1) {
-                distance = r2;
-            } else {
-                distance = r1;
-            }
-
-            vec3 intersection = ray.origin + ray.dir * distance;
-            vec3 normal = intersection - this->center;
-            normal.normalize();
-
-            return Intersection(distance, intersection, normal, this->material);
-        }
-};
-
-class Light {
-    public:
-        vec3 color, pos;
-        Light(vec3 p, vec3 col) : pos(p), color(col) { }
-};
 
 Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
     Intersection i, closest;
