@@ -8,7 +8,7 @@ class vec3 {
         double x, y, z;
 
         vec3();
-        vec3(double v);
+        explicit vec3(double v);
         vec3(double x, double y, double z);
         vec3(double v[3]);
 
