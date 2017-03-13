@@ -13,6 +13,13 @@ void vec3::operator+=(const vec3 &other) {
     this->z += other.z;
 }
 
+bool vec3::operator!=(const vec3 &other) {
+    if (this->x != other.x || this->y != other.y || this->z != other.z) {
+        return true;
+    }
+    return false;
+}
+
 vec3 vec3::operator+(const vec3 &v) const {
     return vec3(x + v.x, y + v.y, z + v.z);
 }
@@ -25,8 +32,8 @@ vec3 vec3::operator*(const vec3 &v) const {
     return vec3(x * v.x, y * v.y, z * v.z);
 }
 
-vec3 vec3::operator-() const { 
-    return vec3(-x, -y, -z); 
+vec3 vec3::operator-() const {
+    return vec3(-x, -y, -z);
 }
 
 vec3 vec3::operator*(const double s) const {
@@ -94,7 +101,7 @@ vec3 normalize(const vec3 &v) {
     return (1.0/l) * v;
 }
 
-std::ostream& operator<<(std::ostream& os, const vec3& v) {  
+std::ostream& operator<<(std::ostream& os, const vec3& v) {
     os << "(" << v.x << "," << v.y << "," << v.z << ")";
-    return os;  
-}  
+    return os;
+}

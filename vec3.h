@@ -13,7 +13,7 @@ class vec3 {
         vec3(double v[3]);
 
         void operator+=(const vec3 &other);
-
+        bool operator!=(const vec3 &other);
         vec3 operator-() const;
 
         vec3 operator+(const vec3 &other) const;
