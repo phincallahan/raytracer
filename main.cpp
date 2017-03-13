@@ -16,6 +16,7 @@
 #include "Shape.h"
 #include "Intersection.h"
 #include "Light.h"
+#include "Plane.h"
 
 using namespace std;
 
@@ -68,9 +69,9 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
                  dot(lightDir, intersect.normal);
 
         // Specular
-        color += light->color *
-                 intersect.material->ks *
-                 pow(dot(camDir, reflected), 64.0);
+        // color += light->color *
+        //          intersect.material->ks *
+        //          pow(dot(camDir, reflected), 64.0);
     }
 
     return vec3(
@@ -119,19 +120,23 @@ int main() {
     Sphere sphere1(vec3(0.0, 0.0, 0.0), 1.0, &material1);
 
     ColorMaterial material2(vec3(0.0, 1.0, 0.0), 0.0, 1.0, 1.0);
-    Sphere sphere2(vec3(-1.0, 1.0, 0.0), .25, &material2);
+    Sphere sphere2(vec3(-2.0, -1.0, -0.75), .25, &material2);
 
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.3, 1.0, 1.0);
-    Sphere sphere3(vec3(1.0, -0.5, 0.0), .25, &material3);
+    Sphere sphere3(vec3(1.0, -0.5, -0.75), .25, &material3);
 
     ColorMaterial material4(vec3(0.8, 0.2, 1.0), 0.8, 1.0, 1.0);
-    Sphere sphere4(vec3(.75, 2.0, 1.0), .66, &material4);
+    Sphere sphere4(vec3(.75, 2.0, -.4), .6, &material4);
 
-    vector<Shape *> shapes(4);
+    ColorMaterial material5(vec3(1.0, 1.0, 1.0), 0.0, 1.0, .6);
+    Plane plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), &material5); 
+
+    vector<Shape *> shapes(5);
     shapes[0] = &sphere1;
     shapes[1] = &sphere2;
     shapes[2] = &sphere3;
     shapes[3] = &sphere4;
+    shapes[4] = &plane;
 
     Light light1(vec3(0.0, 6.0, 2.0), vec3(1.0));
     Light light2(vec3(-8.0, -6.0, 2.0), vec3(1.0));
@@ -142,8 +147,8 @@ int main() {
 
     vec3 target = vec3(0.0, 0.0, 0.0);
 
-    Camera cam(M_PI/15, WIDTH, HEIGHT);
-    cam.lookAt(target, 10.0, 0.0, 0.0);
+    Camera cam(M_PI/12, WIDTH, HEIGHT);
+    cam.lookAt(target, 10.0, M_PI/2.0, M_PI);
 
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
