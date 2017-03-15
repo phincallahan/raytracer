@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 
+/* An implementation of a 3-dimensional vector with useful vector operations */
 vec3::vec3(double v) : x(v), y(v), z(v) { }
 vec3::vec3() : vec3(0.0) { }
 vec3::vec3(double x_, double y_, double z_) : x(x_), y(y_), z(z_) { }

@@ -2,7 +2,13 @@
 #define MATERIAL_H
 
 #include "vec3.h"
-
+/*
+A class describing material properties of an object. Possible properties include color,
+transparent vs opaque, reflectivity, and specular and diffuse lighting amounts.
+kt is the refraction index of a material, kr is the reflectivity, and kd and ks
+are the diffuse and specular lighting ratios, respectively. If kt > 0, the object is
+transparent, otherwise it is opaque.
+*/
 class Material
 {
     public:

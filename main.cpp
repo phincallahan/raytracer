@@ -4,7 +4,7 @@
 #include <vector>
 
 /*
-* clang++ main.cpp Matrix33.cpp vec3.cpp -I /usr/X11R6/include -L/usr/X11R6/lib -lm -lpthread -lX11 -std=c++11 && ./a.out
+* To compile, run the provided compile script with: bash compile.sh
 */
 
 #include "vec3.h"
@@ -20,6 +20,10 @@
 
 using namespace std;
 
+/*
+Checks to see if a ray intersects with objects in our scene. If so,
+an Intersection object is returned containing information about the closest one.
+*/
 Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
     Intersection i, closest;
     for( auto& shape : shapes) {
@@ -32,11 +36,12 @@ Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
 
     return closest;
 }
-
+/* Returns the reflected vector for an incoming vector at a point of intersection */
 vec3 reflectAbout(vec3 incoming, vec3 axis) {
     return 2 * dot(axis, incoming) * axis - incoming;
 }
 
+/* Determines the ray direction for a transmission ray in the case of refraction */
 vec3 refractAt(vec3 incoming, Intersection intersection, bool inside) {
     double c1 = -dot(intersection.normal, incoming);
     double currentMedium = 1.0;
@@ -55,9 +60,7 @@ vec3 refractAt(vec3 incoming, Intersection intersection, bool inside) {
     return (n * incoming) + (n * c1 - c2) * intersection.normal;
 }
 
-// TODO: BUNDLE SHAPES AND LIGHTS AND CAM POS
-
-//Uses the Phong Reflection Model
+/* Uses the Phong Reflection Model */
 vec3 localLighting(Intersection intersect, const vec3 &camPos,
                    vector<Shape *> &shapes,
                    vector<Light *> &lights) {
@@ -87,9 +90,9 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
                  dot(lightDir, intersect.normal);
 
         // Specular
-        // color += light->color *
-        //          intersect.material->ks *
-        //          pow(dot(camDir, reflected), 64.0);
+        color += light->color *
+                 intersect.material->ks *
+                 pow(dot(camDir, reflected), 64.0);
     }
 
     return vec3(
@@ -99,6 +102,11 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
     );
 }
 
+/*
+Determines the ratios of reflected and refracted light seen at a point of intersection
+for a transparent object. This function returns the ratio of reflective light.
+The refractive light amount will be 1 - this amount.
+*/
 double fresnel(vec3 incoming, Intersection intersection, bool inside) {
     double c1 = -dot(intersection.normal, incoming);
     double n1 = 1.0;
@@ -109,7 +117,7 @@ double fresnel(vec3 incoming, Intersection intersection, bool inside) {
     }
     double c2 = sqrt(1.0 - pow(n1 / n2, 2.0) * (1.0 - pow(c1, 2.0)));
 
-    // Total internal reflection
+    // In the case of total internal reflection
     double k = 1.0 - pow(n1 / n2, 2.0) * (1.0 - pow(c1, 2.0));
     if (k < 0 ) {
         return 1.0;
@@ -122,6 +130,10 @@ double fresnel(vec3 incoming, Intersection intersection, bool inside) {
 
 #define MAX_RAY_DEPTH 8
 
+/*
+Recursively casts rays in a provided direction. Each trace returns colors
+which will be combined to light pixels on the screen.
+*/
 vec3 trace(const Ray &ray, const vec3 &cameraPos,
            vector<Shape *> &shapes,
            vector<Light *> &lights, int depth) {
@@ -153,36 +165,36 @@ vec3 trace(const Ray &ray, const vec3 &cameraPos,
             intersection.normal = -intersection.normal;
             inside = true;
         }
-
+        // Calculate ratio of reflected light
         fresAmount = fresnel(ray.dir, intersection, inside);
-
+        // Find transmission ray direction
         vec3 refractDir = refractAt(ray.dir, intersection, inside);
         refractDir.normalize();
 
         if (refractDir != vec3(0.0)) {
             Ray refractRay (intersection.pos + refractDir *.001, refractDir);
             refractColor = trace(refractRay, cameraPos, shapes, lights, depth + 1);
-            // Find the local color (specular, diffuse, ambient)
+
+            // Determine color at point of intersection
             vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
             vec3 color =  localColor + reflColor * fresAmount +
                             refractColor * (1.0 - fresAmount);
             return color;
         } else {
-            // Total internal reflection
+            // Total internal reflection, return only the reflected color and local lighting
             vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
             vec3 color =  localColor + reflColor * intersection.material->kr;
             return color;
         }
     }
 
-    // Find the local color (specular, diffuse, ambient)
+    // No refraction. Find the local color (specular, diffuse, ambient)
     vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
     vec3 color =  localColor + reflColor * intersection.material->kr;
 
     return color;
 }
 
-// TODO: ADD COMMAND LINE OPTIONS
 int main() {
     const int WIDTH = 1024;
     const int HEIGHT = 1024;
@@ -190,6 +202,7 @@ int main() {
     cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
     img.fill(0.0);
 
+    // Setup a scene
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
     Sphere sphere1(vec3(0.0, 0.0, 0.0), 0.45, &material1);
 
@@ -228,7 +241,6 @@ int main() {
     for(int i = 0; i < WIDTH; i++) {
         for(int j = 0; j < HEIGHT; j++) {
 
-            // TODO: PUT ALL OF THIS IN A SAMPLE FUNCTION
             vec3 c (0.0);
             double GRID_SIZE = 3;
             for(int k = 0; k < GRID_SIZE; k++) {
