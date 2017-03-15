@@ -4,5 +4,18 @@ cs-311-raytracer is a simple implementation of the Whitted ray-tracing algorithm
 ### Organization
 The project contains a main file which sets up objects and their material properties and writes an image to a .png in the current directory. Included in this file are functions for tracing rays through a scene, as well as functions which perform reflection and refraction calculations. All other files in the project are simple class files which implement objects that we have created, such as spheres, planes, and lights. 
 
-### Installation
-If 
+### Installation and Execution
+If on a CS lab machine, simply clone this repository in a terminal using:
+```
+git clone https://github.com/phincallahan/cs-311-raytracer.git
+```
+Run the provided compile script:
+```
+bash compile.sh
+```
+And finally execute the created executable:
+```
+./a.out
+```
+The executable will produce a .png file called *raytrace.png* in the local directory.
+
