@@ -103,25 +103,21 @@ double fresnel(vec3 incoming, Intersection intersection, bool inside) {
     double c1 = -dot(intersection.normal, incoming);
     double n1 = 1.0;
     double n2 = intersection.material->kt;
-
     if (inside) {
         n1 = intersection.material->kt;
         n2 = 1.0;
     }
+    double c2 = sqrt(1.0 - pow(n1 / n2, 2.0) * (1.0 - pow(c1, 2.0)));
 
-    double n = n1 / n2;
-    double c2 = sqrt(1.0 - pow(n, 2.0) * (1.0 - pow(c1, 2.0)));
-
-    //Total internal reflection
-    double k = 1.0 - pow(n, 2.0) * (1.0 - pow(c1, 2.0));
+    // Total internal reflection
+    double k = 1.0 - pow(n1 / n2, 2.0) * (1.0 - pow(c1, 2.0));
     if (k < 0 ) {
         return 1.0;
     }
-
+    // Setup fresnel equations and average them to get the ratio of reflected light
     double fres1 = pow((n2 * c1 - n1 * c2) / (n2 * c1 + n1 * c2), 2.0);
     double fres2 = pow((n1 * c2 - n2 * c1) / (n1 * c2 + n2 * c1), 2.0);
-    double fresReflect = 0.5 * (fres1 + fres2);
-    return fresReflect;
+    return 0.5 * (fres1 + fres2);
 }
 
 #define MAX_RAY_DEPTH 8
@@ -197,11 +193,11 @@ int main() {
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
     Sphere sphere1(vec3(0.0, 0.0, 0.0), 0.45, &material1);
 
-    ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.1, 0.8, 1.0, 1.0);
+    ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.5, 0.8, 1.0, 1.0);
     Sphere sphere2(vec3(-4.0, -0.7, -0.65), .35, &material2);
 
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0);
-    Sphere sphere3(vec3(-3.0, -0.5, -0.75), .25, &material3);
+    Sphere sphere3(vec3(-1.0, -0.5, -0.75), .25, &material3);
 
     ColorMaterial material4(vec3(0.8, 0.2, 1.0), 0.0, 0.8, 1.0, 1.0);
     Sphere sphere4(vec3(.75, 2.0, -.4), 0.6, &material4);
@@ -255,5 +251,5 @@ int main() {
     }
 
     img.normalize(0, 255);
-    img.save("rotate5.png");
+    img.save("raytrace.png");
 }
