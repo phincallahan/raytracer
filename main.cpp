@@ -1,11 +1,10 @@
 #include <iostream>
 #include <cmath>
-#include "CImg.h"
 #include <vector>
 
-/*
-* To compile, run the provided compile script with: bash compile.sh
-*/
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#define STBI_FAILURE_USERMSG
 
 #include "vec3.h"
 #include "Matrix33.h"
@@ -87,6 +86,7 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
         // Diffuse
         color += intersect.material->getColor() *
                  intersect.material->kd *
+                 light->color *
                  dot(lightDir, intersect.normal);
 
         // Specular
@@ -196,11 +196,10 @@ vec3 trace(const Ray &ray, const vec3 &cameraPos,
 }
 
 int main() {
-    const int WIDTH = 1024;
-    const int HEIGHT = 1024;
+    int WIDTH = 1024, HEIGHT = 1024;
 
-    cimg_library::CImg<double> img(WIDTH, HEIGHT, 1, 3);
-    img.fill(0.0);
+    unsigned char * png;
+    png = (unsigned char*) malloc(WIDTH * HEIGHT * 3.0);
 
     // Setup a scene
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
@@ -225,8 +224,8 @@ int main() {
     shapes[3] = &sphere4;
     shapes[4] = &plane;
 
-    Light light1(vec3(0.0, 6.0, 2.0), vec3(1.0));
-    Light light2(vec3(-8.0, -6.0, 2.0), vec3(1.0));
+    Light light1(vec3(0.0, 6.0, 2.0), vec3(0.7));
+    Light light2(vec3(-8.0, -6.0, 2.0), vec3(0.5));
 
     vector<Light *> lights(2);
     lights[0] = &light1;
@@ -248,7 +247,7 @@ int main() {
                     double y_off = (0.5/GRID_SIZE) + (l/GRID_SIZE);
                     double x_off = (0.5/GRID_SIZE) + (k/GRID_SIZE);
 
-                    Ray ray = cam.getRay(i + x_off, j + y_off);
+                    Ray ray = cam.getRay(j + x_off, i + y_off);
 
                     vec3 col = trace(ray, cam.pos, shapes, lights, 0);
                     c += col;
@@ -258,10 +257,16 @@ int main() {
             c = c / (double)(GRID_SIZE * GRID_SIZE);
 
             double colors[3] = { c.x, c.y, c.z };
-            img.draw_point(i, j, colors);
+            png[(WIDTH * i + j) * 3] = fmin((int)(255 * c.x), 255);
+            png[(WIDTH * i + j) * 3 + 1] = fmin((int)(255 * c.y), 255);
+            png[(WIDTH * i + j) * 3 + 2] = fmin((int)(255 * c.z), 255);
+            // png[(WIDTH * i + j) * 4 + 3] = 0.0;
         }
     }
 
-    img.normalize(0, 255);
-    img.save("raytrace.png");
+    if(!stbi_write_png("raytraced.png", WIDTH, HEIGHT, 3, png, WIDTH*3)) {
+        cout << "ERROR WRITING FILE" << endl;
+    }
+
+    free(png);
 }
