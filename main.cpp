@@ -193,8 +193,8 @@ int main() {
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
     Sphere sphere1(vec3(0.0, 0.0, 0.0), 0.45, &material1);
 
-    ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.5, 0.8, 1.0, 1.0);
-    Sphere sphere2(vec3(-4.0, -0.7, -0.65), .35, &material2);
+    ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.01, 0.8, 1.0, 1.0);
+    Sphere sphere2(vec3(-4.0, -0.5, -0.65), .35, &material2);
 
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0);
     Sphere sphere3(vec3(-1.0, -0.5, -0.75), .25, &material3);
