@@ -20,23 +20,6 @@
 
 using namespace std;
 
-/*
-Checks to see if a ray intersects with objects in our scene. If so,
-an Intersection object is returned containing information about the closest one.
-*/
-// Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
-//     Intersection i, closest;
-//     for( auto& shape : shapes) {
-//         i = shape->intersect(ray);
-//         if(i.distance > 0 &&
-//             (closest.distance < 0 || closest.distance > i.distance)) {
-//                 closest = i;
-//         }
-//     }
-
-//     return closest;
-// }
-
 /* Returns the reflected vector for an incoming vector at a point of intersection */
 vec3 reflectAbout(vec3 incoming, vec3 axis) {
     return 2 * dot(axis, incoming) * axis - incoming;
