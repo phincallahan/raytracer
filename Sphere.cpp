@@ -32,8 +32,7 @@ Intersection Sphere::intersect(Ray ray) const {
     }
 
     vec3 intersection = ray.origin + ray.dir * distance;
-    vec3 normal = intersection - this->center;
-    normal.normalize();
+    vec3 normal = normalize(intersection - this->center);
 
     return Intersection(distance, intersection, normal, this->material);
 }
