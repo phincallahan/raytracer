@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OBJECTS=(Matrix33.cpp vec3.cpp Camera.cpp Sphere.cpp Plane.cpp)
+OBJECTS=(Matrix33.cpp vec3.cpp Camera.cpp Sphere.cpp Plane.cpp Scene.cpp)
 INCLUDE=/usr/X11R6/include
 LIB=/usr/X11R6/lib
 FLAGS=(lm lpthread lX11 std=c++11)
