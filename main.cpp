@@ -24,18 +24,19 @@ using namespace std;
 Checks to see if a ray intersects with objects in our scene. If so,
 an Intersection object is returned containing information about the closest one.
 */
-Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
-    Intersection i, closest;
-    for( auto& shape : shapes) {
-        i = shape->intersect(ray);
-        if(i.distance > 0 &&
-            (closest.distance < 0 || closest.distance > i.distance)) {
-                closest = i;
-        }
-    }
+// Intersection findIntersect(const Ray &ray, vector<Shape *> &shapes) {
+//     Intersection i, closest;
+//     for( auto& shape : shapes) {
+//         i = shape->intersect(ray);
+//         if(i.distance > 0 &&
+//             (closest.distance < 0 || closest.distance > i.distance)) {
+//                 closest = i;
+//         }
+//     }
 
-    return closest;
-}
+//     return closest;
+// }
+
 /* Returns the reflected vector for an incoming vector at a point of intersection */
 vec3 reflectAbout(vec3 incoming, vec3 axis) {
     return 2 * dot(axis, incoming) * axis - incoming;
@@ -61,14 +62,11 @@ vec3 refractAt(vec3 incoming, Intersection intersection, bool inside) {
 }
 
 /* Uses the Phong Reflection Model */
-vec3 localLighting(Intersection intersect, const vec3 &camPos,
-                   vector<Shape *> &shapes,
-                   vector<Light *> &lights) {
-
-    vec3 camDir = camPos - intersect.pos, color;
+vec3 localLighting(Intersection intersect, Scene scene) {
+    vec3 camDir = scene.camera.pos - intersect.pos, color;
     camDir.normalize();
 
-    for( auto& light: lights) {
+    for( auto& light: scene.lights) {
         vec3 lightDir = light->pos - intersect.pos;
         lightDir.normalize();
 
@@ -76,7 +74,7 @@ vec3 localLighting(Intersection intersect, const vec3 &camPos,
             continue;
 
         Ray shadowRay (intersect.pos + lightDir * .0001, lightDir);
-        Intersection shadowIntersection = findIntersect(shadowRay, shapes);
+        Intersection shadowIntersection = scene.findIntersect(shadowRay);
 
         if (shadowIntersection.distance > 0)
             continue;
@@ -138,7 +136,7 @@ which will be combined to light pixels on the screen.
 vec3 trace(const Ray &ray, Scene& scene, int depth) {
     if(depth >= MAX_RAY_DEPTH) return vec3(0.0);
 
-    Intersection intersection = findIntersect(ray, scene.shapes);
+    Intersection intersection = scene.findIntersect(ray);
     vec3 cameraPos = scene.camera.pos;
 
     if(intersection.distance < 0)
@@ -175,20 +173,20 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
             refractColor = trace(refractRay, scene, depth + 1);
 
             // Determine color at point of intersection
-            vec3 localColor = localLighting(intersection, cameraPos, scene.shapes, scene.lights);
+            vec3 localColor = localLighting(intersection, scene);
             vec3 color =  localColor + reflColor * fresAmount +
                             refractColor * (1.0 - fresAmount);
             return color;
         } else {
             // Total internal reflection, return only the reflected color and local lighting
-            vec3 localColor = localLighting(intersection, cameraPos, scene.shapes, scene.lights);
+            vec3 localColor = localLighting(intersection, scene);
             vec3 color =  localColor + reflColor * intersection.material->kr;
             return color;
         }
     }
 
     // No refraction. Find the local color (specular, diffuse, ambient)
-    vec3 localColor = localLighting(intersection, cameraPos, scene.shapes, scene.lights);
+    vec3 localColor = localLighting(intersection, scene);
     vec3 color =  localColor + reflColor * intersection.material->kr;
 
     return color;
