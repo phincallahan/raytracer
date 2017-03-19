@@ -2,10 +2,6 @@
 #include <cmath>
 #include <vector>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#define STBI_FAILURE_USERMSG
-
 #include "vec3.h"
 #include "Matrix33.h"
 #include "Ray.h"
@@ -17,6 +13,7 @@
 #include "Light.h"
 #include "Plane.h"
 #include "Scene.h"
+#include "Image.h"
 
 using namespace std;
 
@@ -175,7 +172,9 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
     return color;
 }
 
-Scene initScene(int H, int W) {
+int main() {
+    int WIDTH = 1024, HEIGHT = 1024;
+
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
     ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.01, 0.8, 1.0, 1.0);
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0);
@@ -186,7 +185,7 @@ Scene initScene(int H, int W) {
     Sphere sphere2(vec3(-4.0, -0.5, -0.65), .35, &material2);
     Sphere sphere3(vec3(-1.0, -0.5, -0.75), .25, &material3);
     Sphere sphere4(vec3(.75, 2.0, -.4), 0.6, &material4);
-    Plane plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), &material5);
+    Plane plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), &material5); 
 
     vector<Shape *> shapes(5);
     shapes[0] = &sphere1;
@@ -204,19 +203,12 @@ Scene initScene(int H, int W) {
 
     vec3 target = vec3(0.0, 0.0, 0.0);
 
-    Camera cam(M_PI/12, W, H);
+    Camera cam(M_PI/12, WIDTH, HEIGHT);
     cam.lookAt(target, 10.0, M_PI/2.0, M_PI);
 
-    return Scene(shapes, lights, cam);
-}
+    Scene scene(shapes, lights, cam);
 
-int main() {
-    int WIDTH = 1024, HEIGHT = 1024;
-
-    unsigned char * png;
-    png = (unsigned char*) malloc(WIDTH * HEIGHT * 3.0);
-    
-    auto scene = initScene(HEIGHT, WIDTH);
+    Image img(WIDTH, HEIGHT);
 
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
@@ -238,17 +230,9 @@ int main() {
 
             c = c / (double)(GRID_SIZE * GRID_SIZE);
 
-            double colors[3] = { c.x, c.y, c.z };
-            png[(WIDTH * i + j) * 3] = fmin((int)(255 * c.x), 255);
-            png[(WIDTH * i + j) * 3 + 1] = fmin((int)(255 * c.y), 255);
-            png[(WIDTH * i + j) * 3 + 2] = fmin((int)(255 * c.z), 255);
-            // png[(WIDTH * i + j) * 4 + 3] = 0.0;
+            img.setPixel(i, j, c);
         }
     }
 
-    if(!stbi_write_png("raytraced.png", WIDTH, HEIGHT, 3, png, WIDTH*3)) {
-        cout << "ERROR WRITING FILE" << endl;
-    }
-
-    free(png);
+    img.writePng("raytraced.png");
 }
