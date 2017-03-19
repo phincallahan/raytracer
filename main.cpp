@@ -16,6 +16,7 @@
 #include "Intersection.h"
 #include "Light.h"
 #include "Plane.h"
+#include "Scene.h"
 
 using namespace std;
 
@@ -134,13 +135,11 @@ double fresnel(vec3 incoming, Intersection intersection, bool inside) {
 Recursively casts rays in a provided direction. Each trace returns colors
 which will be combined to light pixels on the screen.
 */
-vec3 trace(const Ray &ray, const vec3 &cameraPos,
-           vector<Shape *> &shapes,
-           vector<Light *> &lights, int depth) {
-
+vec3 trace(const Ray &ray, Scene& scene, int depth) {
     if(depth >= MAX_RAY_DEPTH) return vec3(0.0);
 
-    Intersection intersection = findIntersect(ray, shapes);
+    Intersection intersection = findIntersect(ray, scene.shapes);
+    vec3 cameraPos = scene.camera.pos;
 
     if(intersection.distance < 0)
         return vec3(0.0);
@@ -152,7 +151,7 @@ vec3 trace(const Ray &ray, const vec3 &cameraPos,
         reflDir.normalize();
 
         Ray reflRay (intersection.pos + reflDir * .001, reflDir);
-        reflColor = trace(reflRay, cameraPos, shapes, lights, depth + 1);
+        reflColor = trace(reflRay, scene, depth + 1);
     }
 
     // Get the refracted rays and calculate color
@@ -173,23 +172,23 @@ vec3 trace(const Ray &ray, const vec3 &cameraPos,
 
         if (refractDir != vec3(0.0)) {
             Ray refractRay (intersection.pos + refractDir *.001, refractDir);
-            refractColor = trace(refractRay, cameraPos, shapes, lights, depth + 1);
+            refractColor = trace(refractRay, scene, depth + 1);
 
             // Determine color at point of intersection
-            vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
+            vec3 localColor = localLighting(intersection, cameraPos, scene.shapes, scene.lights);
             vec3 color =  localColor + reflColor * fresAmount +
                             refractColor * (1.0 - fresAmount);
             return color;
         } else {
             // Total internal reflection, return only the reflected color and local lighting
-            vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
+            vec3 localColor = localLighting(intersection, cameraPos, scene.shapes, scene.lights);
             vec3 color =  localColor + reflColor * intersection.material->kr;
             return color;
         }
     }
 
     // No refraction. Find the local color (specular, diffuse, ambient)
-    vec3 localColor = localLighting(intersection, cameraPos, shapes, lights);
+    vec3 localColor = localLighting(intersection, cameraPos, scene.shapes, scene.lights);
     vec3 color =  localColor + reflColor * intersection.material->kr;
 
     return color;
@@ -203,18 +202,15 @@ int main() {
 
     // Setup a scene
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
-    Sphere sphere1(vec3(0.0, 0.0, 0.0), 0.45, &material1);
-
     ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.01, 0.8, 1.0, 1.0);
-    Sphere sphere2(vec3(-4.0, -0.5, -0.65), .35, &material2);
-
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0);
-    Sphere sphere3(vec3(-1.0, -0.5, -0.75), .25, &material3);
-
     ColorMaterial material4(vec3(0.8, 0.2, 1.0), 0.0, 0.8, 1.0, 1.0);
-    Sphere sphere4(vec3(.75, 2.0, -.4), 0.6, &material4);
-
     ColorMaterial material5(vec3(1.0, 1.0, 1.0), 0.0, 0.0, 1.0, .6);
+
+    Sphere sphere1(vec3(0.0, 0.0, 0.0), 0.45, &material1);
+    Sphere sphere2(vec3(-4.0, -0.5, -0.65), .35, &material2);
+    Sphere sphere3(vec3(-1.0, -0.5, -0.75), .25, &material3);
+    Sphere sphere4(vec3(.75, 2.0, -.4), 0.6, &material4);
     Plane plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), &material5);
 
     vector<Shape *> shapes(5);
@@ -236,6 +232,8 @@ int main() {
     Camera cam(M_PI/12, WIDTH, HEIGHT);
     cam.lookAt(target, 10.0, M_PI/2.0, M_PI);
 
+    Scene scene(shapes, lights, cam);
+
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
         for(int j = 0; j < HEIGHT; j++) {
@@ -249,7 +247,7 @@ int main() {
 
                     Ray ray = cam.getRay(j + x_off, i + y_off);
 
-                    vec3 col = trace(ray, cam.pos, shapes, lights, 0);
+                    vec3 col = trace(ray, scene, 0);
                     c += col;
                 }
             }
