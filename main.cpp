@@ -175,13 +175,7 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
     return color;
 }
 
-int main() {
-    int WIDTH = 1024, HEIGHT = 1024;
-
-    unsigned char * png;
-    png = (unsigned char*) malloc(WIDTH * HEIGHT * 3.0);
-
-    // Setup a scene
+Scene initScene(int H, int W) {
     ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
     ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.01, 0.8, 1.0, 1.0);
     ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0);
@@ -210,10 +204,19 @@ int main() {
 
     vec3 target = vec3(0.0, 0.0, 0.0);
 
-    Camera cam(M_PI/12, WIDTH, HEIGHT);
+    Camera cam(M_PI/12, W, H);
     cam.lookAt(target, 10.0, M_PI/2.0, M_PI);
 
-    Scene scene(shapes, lights, cam);
+    return Scene(shapes, lights, cam);
+}
+
+int main() {
+    int WIDTH = 1024, HEIGHT = 1024;
+
+    unsigned char * png;
+    png = (unsigned char*) malloc(WIDTH * HEIGHT * 3.0);
+    
+    auto scene = initScene(HEIGHT, WIDTH);
 
     //Generate the initial rays. One for each pixel in the screen.
     for(int i = 0; i < WIDTH; i++) {
@@ -226,7 +229,7 @@ int main() {
                     double y_off = (0.5/GRID_SIZE) + (l/GRID_SIZE);
                     double x_off = (0.5/GRID_SIZE) + (k/GRID_SIZE);
 
-                    Ray ray = cam.getRay(j + x_off, i + y_off);
+                    Ray ray = scene.camera.getRay(j + x_off, i + y_off);
 
                     vec3 col = trace(ray, scene, 0);
                     c += col;
