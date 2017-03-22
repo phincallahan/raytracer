@@ -14,6 +14,7 @@
 #include "Plane.h"
 #include "Scene.h"
 #include "Image.h"
+#include "RandomSampler.h"
 
 using namespace std;
 
@@ -69,9 +70,8 @@ vec3 localLighting(Intersection intersect, Scene scene) {
                  dot(lightDir, intersect.normal);
 
         // Specular
-        color += light->color *
-                 intersect.material->ks *
-                 pow(dot(camDir, reflected), 64.0);
+        double specAngle = fmax(dot(camDir, reflected), 0.0);
+        color += light->color * intersect.material->ks * pow(specAngle, 65);
     }
 
     return vec3(
@@ -173,64 +173,44 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
 }
 
 int main() {
-    int WIDTH = 1024, HEIGHT = 1024;
+    const int D = 1024, N = 8;
 
-    ColorMaterial material1(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0);
-    ColorMaterial material2(vec3(0.0, 1.0, 0.0), 1.01, 0.8, 1.0, 1.0);
-    ColorMaterial material3(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0);
-    ColorMaterial material4(vec3(0.8, 0.2, 1.0), 0.0, 0.8, 1.0, 1.0);
-    ColorMaterial material5(vec3(1.0, 1.0, 1.0), 0.0, 0.0, 1.0, .6);
+    vector<Material *> materials = {
+        new ColorMaterial(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0),
+        new ColorMaterial(vec3(0.0, 1.0, 0.0), 1.0, 0.8, 1.0, 1.0),
+        new ColorMaterial(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0),
+        new ColorMaterial(vec3(0.8, 0.2, 1.0), 0.0, 0.8, 1.0, 1.0),
+        new ColorMaterial(vec3(1.0, 1.0, 1.0), 0.0, 0.0, 0.0, 1.0),
+    };
 
-    Sphere sphere1(vec3(0.0, 0.0, 0.0), 0.45, &material1);
-    Sphere sphere2(vec3(-4.0, -0.5, -0.65), .35, &material2);
-    Sphere sphere3(vec3(-1.0, -0.5, -0.75), .25, &material3);
-    Sphere sphere4(vec3(.75, 2.0, -.4), 0.6, &material4);
-    Plane plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), &material5); 
+    vector<Shape *> shapes = {
+        new Sphere(vec3(0.0), 0.45, materials[0]),
+        new Sphere(vec3(-4.0, -0.5, -0.65), .35, materials[1]),
+        new Sphere(vec3(-1.0, -0.5, -0.75), .25, materials[2]),
+        new Sphere(vec3(.75, 2.0, -.4), 0.6, materials[3]),
+        new Plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), materials[4]),
+    };
 
-    vector<Shape *> shapes(5);
-    shapes[0] = &sphere1;
-    shapes[1] = &sphere2;
-    shapes[2] = &sphere3;
-    shapes[3] = &sphere4;
-    shapes[4] = &plane;
+    vector<Light *> lights = { 
+        new Light(vec3(0.0, 6.0, 2.0), vec3(0.7)),
+        new Light(vec3(-8.0, -6.0, 2.0), vec3(0.5))
+    };
 
-    Light light1(vec3(0.0, 6.0, 2.0), vec3(0.7));
-    Light light2(vec3(-8.0, -6.0, 2.0), vec3(0.5));
-
-    vector<Light *> lights(2);
-    lights[0] = &light1;
-    lights[1] = &light2;
-
-    vec3 target = vec3(0.0, 0.0, 0.0);
-
-    Camera cam(M_PI/12, WIDTH, HEIGHT);
-    cam.lookAt(target, 10.0, M_PI/2.0, M_PI);
+    Camera cam(M_PI/12, D, D);
+    cam.lookAt(vec3(0.0), 10.0, M_PI/2.0, M_PI);
 
     Scene scene(shapes, lights, cam);
 
-    Image img(WIDTH, HEIGHT);
+    Sample samples[N];
+    RandomSampler rs(0, D, 0, D, N);
 
-    //Generate the initial rays. One for each pixel in the screen.
-    for(int i = 0; i < WIDTH; i++) {
-        for(int j = 0; j < HEIGHT; j++) {
+    Image img(D, D);
 
-            vec3 c (0.0);
-            double GRID_SIZE = 3;
-            for(int k = 0; k < GRID_SIZE; k++) {
-                for(int l = 0; l < GRID_SIZE; l++) {
-                    double y_off = (0.5/GRID_SIZE) + (l/GRID_SIZE);
-                    double x_off = (0.5/GRID_SIZE) + (k/GRID_SIZE);
-
-                    Ray ray = scene.camera.getRay(j + x_off, i + y_off);
-
-                    vec3 col = trace(ray, scene, 0);
-                    c += col;
-                }
-            }
-
-            c = c / (double)(GRID_SIZE * GRID_SIZE);
-
-            img.setPixel(i, j, c);
+    Ray ray;
+    while(rs.moreSamples(samples)) {
+        for(int i = 0; i < N; i++) {
+            ray = scene.camera.getRay(samples[i]);
+            img.addPixel(rs.xPos, rs.yPos, (1.0/N) * trace(ray, scene, 0));
         }
     }
 

@@ -12,11 +12,12 @@ class Image {
         ~Image();
 
         void setPixel(int i, int j, const vec3& c);
+        void addPixel(int i, int j, const vec3& c);
         int writePng(std::string path) const;
 
     private:
         int width, height;
-        char *pix;
+        double *pix;
 };
 
 #endif

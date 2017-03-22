@@ -1,6 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include "Sampler.h"
 #include "Ray.h"
 #include "vec3.h"
 #include "Matrix33.h"
@@ -16,7 +17,7 @@ class Camera {
 
         //Ported for Josh's camera code
         void lookAt(vec3 target, double rho, double phi, double theta);
-        Ray getRay(double screen_x, double screen_y) const;
+        Ray getRay(Sample s) const;
 };
 
 #endif 

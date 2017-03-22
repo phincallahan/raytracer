@@ -14,9 +14,9 @@ void Camera::lookAt(vec3 target, double rho, double phi, double theta) {
     this->pos = z * rho + target;
 }
 
-Ray Camera::getRay(double screen_x, double screen_y) const {
-    double x = (2 * screen_x / (double) width - 1) * scale; 
-    double y = (1 - 2 * screen_y / (double) height) * scale; 
+Ray Camera::getRay(Sample s) const {
+    double x = (2 * s.x / (double) width - 1) * scale; 
+    double y = (1 - 2 * s.y / (double) height) * scale; 
 
     vec3 dir = normalize(rot * vec3(x, y, -1));
 
