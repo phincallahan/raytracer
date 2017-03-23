@@ -18,11 +18,6 @@
 
 using namespace std;
 
-/* Returns the reflected vector for an incoming vector at a point of intersection */
-vec3 reflectAbout(vec3 incoming, vec3 axis) {
-    return 2 * dot(axis, incoming) * axis - incoming;
-}
-
 /* Determines the ray direction for a transmission ray in the case of refraction */
 vec3 refractAt(vec3 incoming, Intersection intersection, bool inside) {
     double c1 = -dot(intersection.normal, incoming);
@@ -60,7 +55,7 @@ vec3 localLighting(Intersection intersect, Scene scene) {
         if (shadowIntersection.distance > 0)
             continue;
 
-        vec3 reflected = reflectAbout(lightDir, intersect.normal);
+        vec3 reflected = vec3::Reflect(lightDir, intersect.normal);
         reflected.normalize();
 
         // Diffuse
@@ -125,7 +120,7 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
     // Get the reflected ray and calculate color
     vec3 reflColor = vec3(0.0);
     if (intersection.material->kr > 0.0) {
-        vec3 reflDir = reflectAbout(-ray.dir, intersection.normal);
+        vec3 reflDir = vec3::Reflect(-ray.dir, intersection.normal);
         reflDir.normalize();
 
         Ray reflRay (intersection.pos + reflDir * .001, reflDir);

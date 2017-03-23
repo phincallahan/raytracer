@@ -37,6 +37,11 @@ class vec3 {
 
         static vec3 Spherical(double r, double phi, double theta);
 
+        /* Returns the reflected vector for an incoming vector at a point of intersection */
+        static vec3 Reflect(vec3 incoming, vec3 axis) {
+            return 2 * dot(axis, incoming) * axis - incoming;
+        }
+
         friend std::ostream& operator<<(std::ostream& os, const vec3& v);
 };
 
