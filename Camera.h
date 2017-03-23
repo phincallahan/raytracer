@@ -8,12 +8,11 @@
 
 class Camera {
     public: 
-        int width, height;
         double scale;
         vec3 pos;
         Matrix33 rot;
 
-        Camera(double fovy, int width, int height);
+        Camera(double fovy);
 
         //Ported for Josh's camera code
         void lookAt(vec3 target, double rho, double phi, double theta);

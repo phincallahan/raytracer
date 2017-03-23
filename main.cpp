@@ -167,9 +167,7 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
     return color;
 }
 
-int main() {
-    const int D = 1024, N = 8;
-
+Scene initScene() {
     vector<Material *> materials = {
         new ColorMaterial(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0),
         new ColorMaterial(vec3(0.0, 1.0, 0.0), 1.0, 0.8, 1.0, 1.0),
@@ -191,10 +189,16 @@ int main() {
         new Light(vec3(-8.0, -6.0, 2.0), vec3(0.5))
     };
 
-    Camera cam(M_PI/12, D, D);
+    Camera cam(M_PI/12);
     cam.lookAt(vec3(0.0), 10.0, M_PI/2.0, M_PI);
 
-    Scene scene(shapes, lights, cam);
+    return Scene(shapes, lights, cam);
+}
+
+int main() {
+    const int D = 1024, N = 8;
+
+    Scene scene = initScene();
 
     Sample samples[N];
     RandomSampler rs(0, D, 0, D, N);

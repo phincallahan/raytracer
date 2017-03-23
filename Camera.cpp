@@ -1,8 +1,7 @@
 #include <cmath>
 #include "Camera.h"
 
-Camera::Camera(double fovy_, int width_, int height_) :
-    scale(tan(fovy_)), width(width_), height(height_) { }
+Camera::Camera(double fovy_) : scale(tan(fovy_)) { }
 
 //Ported for Josh's camera code
 void Camera::lookAt(vec3 target, double rho, double phi, double theta) {
@@ -15,8 +14,8 @@ void Camera::lookAt(vec3 target, double rho, double phi, double theta) {
 }
 
 Ray Camera::getRay(Sample s) const {
-    double x = (2 * s.x / (double) width - 1) * scale; 
-    double y = (1 - 2 * s.y / (double) height) * scale; 
+    double x = (2 * s.x - 1) * scale; 
+    double y = (1 - 2 * s.y) * scale; 
 
     vec3 dir = normalize(rot * vec3(x, y, -1));
 
