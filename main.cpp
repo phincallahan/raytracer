@@ -7,8 +7,9 @@
 #include "Ray.h"
 #include "Material.h"
 #include "Camera.h"
-#include "Sphere.h"
 #include "Shape.h"
+#include "Sphere.h"
+#include "Rectangle.h"
 #include "Intersection.h"
 #include "Light.h"
 #include "Plane.h"
@@ -39,12 +40,11 @@ vec3 refractAt(vec3 incoming, Intersection intersection, bool inside) {
 
 /* Uses the Phong Reflection Model */
 vec3 localLighting(Intersection intersect, Scene scene) {
-    vec3 camDir = scene.camera.pos - intersect.pos, color;
-    camDir.normalize();
+    vec3 color, camDir = normalize(scene.camera.pos - intersect.pos);
 
-    for( auto& light: scene.lights) {
-        vec3 lightDir = light->pos - intersect.pos;
-        lightDir.normalize();
+    for(auto& light: scene.lights) {
+        double lightDist = (light->pos - intersect.pos).length();
+        vec3 lightDir = normalize(light->pos - intersect.pos);
 
         if(dot(intersect.normal, lightDir) < 0)
             continue;
@@ -52,8 +52,10 @@ vec3 localLighting(Intersection intersect, Scene scene) {
         Ray shadowRay (intersect.pos + lightDir * .0001, lightDir);
         Intersection shadowIntersection = scene.findIntersect(shadowRay);
 
-        if (shadowIntersection.distance > 0)
+        double t = shadowIntersection.distance;
+        if (t > 0 && t < lightDist) {
             continue;
+        }
 
         vec3 reflected = vec3::Reflect(lightDir, intersect.normal);
         reflected.normalize();
@@ -65,15 +67,11 @@ vec3 localLighting(Intersection intersect, Scene scene) {
                  dot(lightDir, intersect.normal);
 
         // Specular
-        double specAngle = fmax(dot(camDir, reflected), 0.0);
-        color += light->color * intersect.material->ks * pow(specAngle, 65);
+        // double specAngle = fmax(dot(camDir, reflected), 0.0);
+        // color += light->color * intersect.material->ks * pow(specAngle, 65);
     }
 
-    return vec3(
-        color.x > .1 ? color.x : .1,
-        color.y > .1 ? color.y : .1,
-        color.z > .1 ? color.z : .1
-    );
+    return color;
 }
 
 /*
@@ -170,27 +168,29 @@ vec3 trace(const Ray &ray, Scene& scene, int depth) {
 Scene initScene() {
     vector<Material *> materials = {
         new ColorMaterial(vec3(1.0, 0.3, 0.3), 0.0, 0.8, 1.0, 1.0),
-        new ColorMaterial(vec3(0.0, 1.0, 0.0), 1.0, 0.8, 1.0, 1.0),
+        new ColorMaterial(vec3(1.0, 1.0, 1.0), 1.0, 0.8, 1.0, 1.0),
         new ColorMaterial(vec3(1.0, 0.0, 0.0), 0.0, 0.3, 1.0, 1.0),
         new ColorMaterial(vec3(0.8, 0.2, 1.0), 0.0, 0.8, 1.0, 1.0),
-        new ColorMaterial(vec3(1.0, 1.0, 1.0), 0.0, 0.0, 0.0, 1.0),
+        new ColorMaterial(vec3(0.8), 0.0, 0.0, 0.0, 1.0),
+        new ColorMaterial(vec3(0.0, 1.0, 0.0), 0.0, 0.0, 0.0, 1.0),
     };
 
     vector<Shape *> shapes = {
         new Sphere(vec3(0.0), 0.45, materials[0]),
-        new Sphere(vec3(-4.0, -0.5, -0.65), .35, materials[1]),
-        new Sphere(vec3(-1.0, -0.5, -0.75), .25, materials[2]),
+        new Sphere(vec3(-2.0, -0.5, -0.65), .35, materials[1]),
         new Sphere(vec3(.75, 2.0, -.4), 0.6, materials[3]),
-        new Plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), materials[4]),
+        new Plane(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, -1.0), materials[4]),
+        new Rectangle(vec3(0.0, -2.0, 0.0), vec3(-1.0, 0.0, 0.0), 
+                      vec3(0.0, 0.0, 1.0), materials[5])
     };
 
     vector<Light *> lights = { 
-        new Light(vec3(0.0, 6.0, 2.0), vec3(0.7)),
-        new Light(vec3(-8.0, -6.0, 2.0), vec3(0.5))
+        new Light(vec3(0.0, 6.0, 2.0), vec3(.7)),
+        new Light(vec3(8.0, 2.0, 2.0), vec3(.3))
     };
 
     Camera cam(M_PI/12);
-    cam.lookAt(vec3(0.0), 10.0, M_PI/2.0, M_PI);
+    cam.lookAt(vec3(0.0), 10.0, M_PI/2.0, M_PI/2.0);
 
     return Scene(shapes, lights, cam);
 }

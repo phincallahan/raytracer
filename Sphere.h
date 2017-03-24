@@ -16,6 +16,7 @@ class Sphere : public Shape {
 
         //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
         Intersection intersect(Ray ray) const;
+        double distance(Ray ray) const;
 };
 
 #endif

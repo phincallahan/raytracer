@@ -1,8 +1,8 @@
 #!/bin/bash
 
-OBJECTS=(Matrix33.cpp vec3.cpp Camera.cpp Sphere.cpp Plane.cpp Scene.cpp Image.cpp RandomSampler.cpp)
+OBJECTS=(Matrix33 vec3 Camera Sphere Plane Scene Image RandomSampler Rectangle)
 INCLUDE=/usr/X11R6/include
 LIB=/usr/X11R6/lib
 FLAGS=(lm lpthread lX11 std=c++11)
 
-clang++ main.cpp ${OBJECTS[*]} -I $INCLUDE -L $LIB ${FLAGS[@]/#/-} 
+clang++ main.cpp ${OBJECTS[@]/%/.cpp} -I $INCLUDE -L $LIB ${FLAGS[@]/#/-} 
