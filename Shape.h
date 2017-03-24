@@ -7,6 +7,7 @@
 class Shape {
     public:
         virtual Intersection intersect(Ray) const = 0;
+        virtual double distance(Ray) const = 0;
 };
 
 #endif

@@ -11,8 +11,11 @@ class Plane : public Shape {
         Material *material;
         Plane();
         Plane(Material *mat);
+        Plane(vec3 point, vec3 normal);
         Plane(vec3 point, vec3 normal, Material *mat);
+
         Intersection intersect(Ray ray) const;
+        double distance(Ray ray) const;
 };
 
 #endif
